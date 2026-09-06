@@ -11,9 +11,9 @@ function App() {
   const [ingredientes, setIngredientes] = useState<Ingrediente[]>([]);
 
   useEffect(() => {
-    fetch("http://localhost:3000/ingredientes")
+    fetch("http://localhost:3000/api/ingredientes")
       .then((response) => response.json())
-      .then((data) => setIngredientes(data));
+      .then((data) => setIngredientes(data.data));
   }, []);
 
   return (
