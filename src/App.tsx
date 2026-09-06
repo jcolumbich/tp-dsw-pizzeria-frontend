@@ -1,5 +1,11 @@
 import { useState, useEffect } from "react";
 import "./App.css";
+import ListaPizzas from "./components/ListaPizzas";
+import ListaRepartidores from "./components/ListaRepartidores";
+import ListaClientes from "./components/ListaClientes";
+import ListaPedidos from "./components/ListaPedidos";
+import FormularioPedido from "./components/FormularioPedido";
+
 
 interface Ingrediente {
   id: number;
@@ -26,6 +32,12 @@ function App() {
           </li>
         ))}
       </ul>
+
+      <ListaPizzas />
+      <ListaRepartidores />
+      <ListaClientes />
+      <ListaPedidos />
+      <FormularioPedido />
     </div>
   );
 }
