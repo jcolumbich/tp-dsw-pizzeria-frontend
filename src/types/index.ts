@@ -40,5 +40,10 @@ export interface Pedido {
   cliente: number;
 }
 
-
+export interface Envio {
+  id: number;
+  costo: number;
+  monto_propina: number;
+  pedido: number;
+}
 
