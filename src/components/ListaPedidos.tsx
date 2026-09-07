@@ -1,21 +1,12 @@
 import { useState, useEffect } from "react";
-
-interface Pedido {
-  id: number;
-  dia: string;
-  total: number;
-  retiro: boolean;
-  estado: string;
-  cliente: number;
-}
+import type { Pedido } from "../types";
+import { obtenerPedidos } from "../services/pedidosService";
 
 function ListaPedidos() {
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
 
   useEffect(() => {
-    fetch("http://localhost:3000/api/pedidos")
-      .then((response) => response.json())
-      .then((data) => setPedidos(data.data));
+    obtenerPedidos().then(setPedidos);
   }, []);
 
   return (

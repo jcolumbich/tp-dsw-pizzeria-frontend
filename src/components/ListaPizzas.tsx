@@ -1,20 +1,12 @@
 import { useState, useEffect } from "react";
-
-interface Pizza {
-  id: number;
-  nombre: string;
-  precio: number;
-  vegetariana: boolean;
-  disponible: boolean;
-}
+import type { Pizza } from "../types";
+import { obtenerPizzas } from "../services/pizzasService";
 
 function ListaPizzas() {
   const [pizzas, setPizzas] = useState<Pizza[]>([]);
 
   useEffect(() => {
-    fetch("http://localhost:3000/api/pizzas")
-      .then((response) => response.json())
-      .then((data) => setPizzas(data.data));
+    obtenerPizzas().then(setPizzas);
   }, []);
 
   return (

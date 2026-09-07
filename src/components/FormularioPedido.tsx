@@ -1,15 +1,8 @@
 import { useState, useEffect } from "react";
-
-interface Cliente {
-  id: number;
-  nombre: string;
-}
-
-interface Pizza {
-  id: number;
-  nombre: string;
-  precio: number;
-}
+import type { Cliente, Pizza } from "../types";
+import { obtenerClientes } from "../services/clientesService";
+import { obtenerPizzas } from "../services/pizzasService";
+import { crearPedido } from "../services/pedidosService";
 
 function FormularioPedido() {
   const [clientes, setClientes] = useState<Cliente[]>([]);
@@ -21,28 +14,16 @@ function FormularioPedido() {
   const [mensaje, setMensaje] = useState("");
 
   useEffect(() => {
-    fetch("http://localhost:3000/api/clientes")
-      .then((response) => response.json())
-      .then((data) => setClientes(data.data));
-
-    fetch("http://localhost:3000/api/pizzas")
-      .then((response) => response.json())
-      .then((data) => setPizzas(data.data));
+    obtenerClientes().then(setClientes);
+    obtenerPizzas().then(setPizzas);
   }, []);
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
 
-    fetch("http://localhost:3000/api/pedidos", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-     body: JSON.stringify({
-        clienteId: Number(clienteId),
-        retiro: false,
-        items: [{ pizzaId: Number(pizzaId), cantidad: Number(cantidad) }],
-}),
-    })
-      .then((response) => response.json())
+    crearPedido(Number(clienteId), [
+      { pizzaId: Number(pizzaId), cantidad: Number(cantidad) },
+    ])
       .then(() => setMensaje("¡Pedido creado con éxito!"))
       .catch(() => setMensaje("Hubo un error al crear el pedido"));
   };

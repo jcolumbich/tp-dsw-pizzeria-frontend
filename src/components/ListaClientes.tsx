@@ -1,21 +1,12 @@
 import { useState, useEffect } from "react";
-
-interface Cliente {
-  id: number;
-  nombre: string;
-  apellido: string;
-  email: string;
-  domicilio: string;
-  estado: boolean;
-}
+import type { Cliente } from "../types";
+import { obtenerClientes } from "../services/clientesService";
 
 function ListaClientes() {
   const [clientes, setClientes] = useState<Cliente[]>([]);
 
   useEffect(() => {
-    fetch("http://localhost:3000/api/clientes")
-      .then((response) => response.json())
-      .then((data) => setClientes(data.data));
+    obtenerClientes().then(setClientes);
   }, []);
 
   return (

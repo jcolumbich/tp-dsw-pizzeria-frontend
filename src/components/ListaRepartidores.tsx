@@ -1,22 +1,12 @@
 import { useState, useEffect } from "react";
-
-interface Repartidor {
-  id: number;
-  nombre: string;
-  apellido: string;
-  email: string;
-  estado: boolean;
-  matricula: string;
-  monto_propina_total: number;
-}
+import type { Repartidor } from "../types";
+import { obtenerRepartidores } from "../services/repartidoresService";
 
 function ListaRepartidores() {
   const [repartidores, setRepartidores] = useState<Repartidor[]>([]);
 
   useEffect(() => {
-    fetch("http://localhost:3000/api/repartidores")
-      .then((response) => response.json())
-      .then((data) => setRepartidores(data.data));
+    obtenerRepartidores().then(setRepartidores);
   }, []);
 
   return (
