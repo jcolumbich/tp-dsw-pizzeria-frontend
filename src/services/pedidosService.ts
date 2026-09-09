@@ -1,4 +1,5 @@
-import type { Pedido } from "../types";
+
+import type { Pedido, PedidoDetalle } from "../types";
 
 const BASE_URL = "http://localhost:3000/api/pedidos";
 
@@ -22,6 +23,12 @@ export async function crearPedido(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ clienteId, retiro: false, items }),
   });
+  const json = await response.json();
+  return json.data;
+}
+
+export async function obtenerPedidoPorId(id: number): Promise<PedidoDetalle> {
+  const response = await fetch(`http://localhost:3000/api/pedidos/${id}`);
   const json = await response.json();
   return json.data;
 }

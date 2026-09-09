@@ -47,3 +47,17 @@ export interface Envio {
   pedido: number;
 }
 
+export interface DetalleItem {
+  cantidad: number;
+  pizza: Pizza;
+}
+
+export interface PedidoDetalle {
+  id: number;
+  dia: string;
+  total: number;
+  retiro: boolean;
+  estado: string;
+  cliente: Cliente;
+  detalles: DetalleItem[];
+}

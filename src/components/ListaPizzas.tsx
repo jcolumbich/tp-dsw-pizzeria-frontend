@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import type { Pizza } from "../types";
 import { obtenerPizzas } from "../services/pizzasService";
 import "./Listas.css";
@@ -16,9 +17,11 @@ function ListaPizzas() {
       <ul className="lista-items">
         {pizzas.map((pizza) => (
           <li key={pizza.id}>
-            {pizza.nombre} — ${pizza.precio}
-            {pizza.vegetariana && " 🌱 Vegetariana"}
-            {!pizza.disponible && " (No disponible)"}
+            <Link to={`/pizzas/${pizza.id}`}>
+              {pizza.nombre} — ${pizza.precio}
+              {pizza.vegetariana && " 🌱 Vegetariana"}
+              {!pizza.disponible && " (No disponible)"}
+            </Link>
           </li>
         ))}
       </ul>
