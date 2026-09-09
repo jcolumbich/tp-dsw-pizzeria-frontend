@@ -1,0 +1,46 @@
+.contenedor-pagina {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+}
+
+.contenedor-pagina h1 {
+  font-size: 1.8rem;
+  margin-bottom: 1.5rem;
+  color: var(--color-acento);
+}
+
+.lista-items {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.lista-items li {
+  background-color: var(--color-blanco);
+  border: 2px solid var(--color-borde);
+  border-radius: 6px;
+  padding: 1rem 1.25rem;
+  font-size: 1rem;
+}
+
+/* MD: tablets en adelante */
+@media (min-width: 768px) {
+  .contenedor-pagina {
+    padding: 3rem 2rem;
+  }
+
+  .contenedor-pagina h1 {
+    font-size: 2.2rem;
+  }
+}
+
+/* LG: escritorio */
+@media (min-width: 1024px) {
+  .lista-items {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+}

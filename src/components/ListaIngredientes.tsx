@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import type { Ingrediente } from "../types";
 import { obtenerIngredientes } from "../services/ingredientesService";
+import "./Listas.css";
 
 function ListaIngredientes() {
   const [ingredientes, setIngredientes] = useState<Ingrediente[]>([]);
@@ -10,9 +11,9 @@ function ListaIngredientes() {
   }, []);
 
   return (
-    <div>
+    <div className="contenedor-pagina">
       <h1>Ingredientes de la Pizzería</h1>
-      <ul>
+      <ul className="lista-items">
         {ingredientes.map((ingrediente) => (
           <li key={ingrediente.id}>
             {ingrediente.nombre} — Stock: {ingrediente.stock}

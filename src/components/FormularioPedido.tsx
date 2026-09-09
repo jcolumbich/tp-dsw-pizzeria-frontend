@@ -3,6 +3,7 @@ import type { Cliente, Pizza } from "../types";
 import { obtenerClientes } from "../services/clientesService";
 import { obtenerPizzas } from "../services/pizzasService";
 import { crearPedido } from "../services/pedidosService";
+import "./Formularios.css";
 
 function FormularioPedido() {
   const [clientes, setClientes] = useState<Cliente[]>([]);
@@ -29,11 +30,11 @@ function FormularioPedido() {
   };
 
   return (
-    <div>
-      <h1>Registrar Pedido</h1>
+    <div className="formulario">
+      <h2>Registrar Pedido</h2>
       <form onSubmit={handleSubmit}>
-        <div>
-          <label>Cliente:</label>
+        <div className="campo-formulario">
+          <label>Cliente</label>
           <select value={clienteId} onChange={(e) => setClienteId(e.target.value)}>
             <option value="">Seleccioná un cliente</option>
             {clientes.map((cliente) => (
@@ -44,8 +45,8 @@ function FormularioPedido() {
           </select>
         </div>
 
-        <div>
-          <label>Pizza:</label>
+        <div className="campo-formulario">
+          <label>Pizza</label>
           <select value={pizzaId} onChange={(e) => setPizzaId(e.target.value)}>
             <option value="">Seleccioná una pizza</option>
             {pizzas.map((pizza) => (
@@ -56,8 +57,8 @@ function FormularioPedido() {
           </select>
         </div>
 
-        <div>
-          <label>Cantidad:</label>
+        <div className="campo-formulario">
+          <label>Cantidad</label>
           <input
             type="number"
             min="1"
@@ -66,10 +67,12 @@ function FormularioPedido() {
           />
         </div>
 
-        <button type="submit">Registrar Pedido</button>
+        <button type="submit" className="boton-principal">
+          Registrar Pedido
+        </button>
       </form>
 
-      {mensaje && <p>{mensaje}</p>}
+      {mensaje && <p className="mensaje-formulario">{mensaje}</p>}
     </div>
   );
 }

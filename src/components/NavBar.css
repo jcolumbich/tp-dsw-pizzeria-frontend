@@ -1,0 +1,55 @@
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  background-color: var(--color-texto);
+  border-bottom: 3px solid var(--color-acento);
+}
+
+.navbar-logo {
+  font-family: var(--fuente-titulo);
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--color-blanco) !important;
+}
+
+.navbar-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+}
+
+.navbar-links a {
+  color: var(--color-blanco) !important;
+  font-size: 0.95rem;
+  font-weight: 500;
+  transition: color 0.15s ease;
+}
+
+.navbar-links a:hover {
+  color: var(--color-acento-suave) !important;
+}
+
+
+/* Mobile-first: por defecto, el navbar ya se ve bien apilado en celular gracias al flex-wrap */
+
+/* MD: tablets en adelante (768px+) */
+@media (min-width: 768px) {
+  .navbar {
+    padding: 1.25rem 2.5rem;
+  }
+
+  .navbar-logo {
+    font-size: 1.6rem;
+  }
+}
+
+/* LG: escritorio (1024px+) */
+@media (min-width: 1024px) {
+  .navbar-links {
+    gap: 2rem;
+  }
+}

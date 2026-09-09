@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { crearEnvio } from "../services/enviosService";
+import "./Formularios.css";
 
 function FormularioEnvio() {
   const [pedidoId, setPedidoId] = useState("");
@@ -16,11 +17,11 @@ function FormularioEnvio() {
   };
 
   return (
-    <div>
+    <div className="formulario">
       <h2>Registrar Envío</h2>
       <form onSubmit={handleSubmit}>
-        <div>
-          <label>ID del Pedido:</label>
+        <div className="campo-formulario">
+          <label>ID del Pedido</label>
           <input
             type="number"
             value={pedidoId}
@@ -28,8 +29,8 @@ function FormularioEnvio() {
           />
         </div>
 
-        <div>
-          <label>Costo:</label>
+        <div className="campo-formulario">
+          <label>Costo</label>
           <input
             type="number"
             value={costo}
@@ -37,8 +38,8 @@ function FormularioEnvio() {
           />
         </div>
 
-        <div>
-          <label>Propina:</label>
+        <div className="campo-formulario">
+          <label>Propina</label>
           <input
             type="number"
             value={montoPropina}
@@ -46,10 +47,12 @@ function FormularioEnvio() {
           />
         </div>
 
-        <button type="submit">Registrar Envío</button>
+        <button type="submit" className="boton-principal">
+          Registrar Envío
+        </button>
       </form>
 
-      {mensaje && <p>{mensaje}</p>}
+      {mensaje && <p className="mensaje-formulario">{mensaje}</p>}
     </div>
   );
 }

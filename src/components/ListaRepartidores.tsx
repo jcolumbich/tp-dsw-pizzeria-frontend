@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import type { Repartidor } from "../types";
 import { obtenerRepartidores } from "../services/repartidoresService";
+import "./Listas.css";
 
 function ListaRepartidores() {
   const [repartidores, setRepartidores] = useState<Repartidor[]>([]);
@@ -10,9 +11,9 @@ function ListaRepartidores() {
   }, []);
 
   return (
-    <div>
+    <div className="contenedor-pagina">
       <h1>Repartidores</h1>
-      <ul>
+      <ul className="lista-items">
         {repartidores.map((repartidor) => (
           <li key={repartidor.id}>
             {repartidor.nombre} {repartidor.apellido} — Matrícula: {repartidor.matricula}
