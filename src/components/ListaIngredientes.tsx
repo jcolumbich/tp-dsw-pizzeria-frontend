@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import type { Ingrediente } from "../types";
 import { obtenerIngredientes } from "../services/ingredientesService";
 import "./Listas.css";
@@ -16,7 +17,9 @@ function ListaIngredientes() {
       <ul className="lista-items">
         {ingredientes.map((ingrediente) => (
           <li key={ingrediente.id}>
-            {ingrediente.nombre} — Stock: {ingrediente.stock}
+            <Link to={`/ingredientes/${ingrediente.id}`}>
+              {ingrediente.nombre} — Stock: {ingrediente.stock}
+            </Link>
           </li>
         ))}
       </ul>

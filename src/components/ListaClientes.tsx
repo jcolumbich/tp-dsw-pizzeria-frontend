@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import type { Cliente } from "../types";
 import { obtenerClientes } from "../services/clientesService";
 import "./Listas.css";
@@ -16,7 +17,9 @@ function ListaClientes() {
       <ul className="lista-items">
         {clientes.map((cliente) => (
           <li key={cliente.id}>
-            {cliente.nombre} {cliente.apellido} — {cliente.domicilio}
+            <Link to={`/clientes/${cliente.id}`}>
+              {cliente.nombre} {cliente.apellido} — {cliente.domicilio}
+            </Link>
           </li>
         ))}
       </ul>

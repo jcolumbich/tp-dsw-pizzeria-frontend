@@ -3,6 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import type { Pizza } from "../types";
 import { obtenerPizzaPorId } from "../services/pizzasService";
 import "./Listas.css";
+import "./Detalles.css";
 
 function DetallePizza() {
   const { id } = useParams();
@@ -18,11 +19,24 @@ function DetallePizza() {
 
   return (
     <div className="contenedor-pagina">
-      <Link to="/pizzas">← Volver a Pizzas</Link>
+      <Link to="/pizzas" className="detalle-volver">← Volver a Pizzas</Link>
       <h1>{pizza.nombre}</h1>
-      <p>Precio: ${pizza.precio}</p>
-      <p>Vegetariana: {pizza.vegetariana ? "Sí" : "No"}</p>
-      <p>Disponible: {pizza.disponible ? "Sí" : "No"}</p>
+      <div className="detalle-card">
+        <dl className="detalle-datos">
+          <div className="detalle-fila detalle-fila--total">
+            <dt>Precio</dt>
+            <dd>${pizza.precio}</dd>
+          </div>
+          <div className="detalle-fila">
+            <dt>Vegetariana</dt>
+            <dd>{pizza.vegetariana ? "Sí" : "No"}</dd>
+          </div>
+          <div className="detalle-fila">
+            <dt>Disponible</dt>
+            <dd>{pizza.disponible ? "Sí" : "No"}</dd>
+          </div>
+        </dl>
+      </div>
     </div>
   );
 }

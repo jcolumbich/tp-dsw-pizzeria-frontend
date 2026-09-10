@@ -10,7 +10,13 @@ import FormularioPedido from "./components/FormularioPedido";
 import FormularioEnvio from "./components/FormularioEnvio";
 import DetallePizza from "./components/DetallePizza";
 import DetallePedido from "./components/DetallePedido";
-
+import DetalleIngrediente from "./components/DetalleIngrediente";
+import DetalleRepartidor from "./components/DetalleRepartidor";
+import DetalleCliente from "./components/DetalleCliente";
+import FormularioPizza from "./components/FormularioPizza";
+import FormularioIngrediente from "./components/FormularioIngrediente";
+import FormularioRepartidor from "./components/FormularioRepartidor";
+import FormularioCliente from "./components/FormularioCliente";
 
 function App() {
   return (
@@ -18,11 +24,18 @@ function App() {
       <NavBar />
       <Routes>
         <Route path="/" element={<h1>Bienvenido a la Pizzería</h1>} />
-        <Route path="/ingredientes" element={<ListaIngredientes />} />
-        <Route path="/pizzas" element={<ListaPizzas />} />
+
         <Route path="/pizzas/:id" element={<DetallePizza />} />
-        <Route path="/repartidores" element={<ListaRepartidores />} />
-        <Route path="/clientes" element={<ListaClientes />} />
+        <Route
+          path="/pizzas"
+          element={
+            <>
+              <ListaPizzas />
+              <FormularioPizza />
+            </>
+          }
+        />
+
         <Route path="/pedidos/:id" element={<DetallePedido />} />
         <Route
           path="/pedidos"
@@ -31,6 +44,39 @@ function App() {
               <ListaPedidos />
               <FormularioPedido />
               <FormularioEnvio />
+            </>
+          }
+        />
+
+        <Route path="/ingredientes/:id" element={<DetalleIngrediente />} />
+        <Route
+          path="/ingredientes"
+          element={
+            <>
+              <ListaIngredientes />
+              <FormularioIngrediente />
+            </>
+          }
+        />
+
+        <Route path="/repartidores/:id" element={<DetalleRepartidor />} />
+        <Route
+          path="/repartidores"
+          element={
+            <>
+              <ListaRepartidores />
+              <FormularioRepartidor />
+            </>
+          }
+        />
+
+        <Route path="/clientes/:id" element={<DetalleCliente />} />
+        <Route
+          path="/clientes"
+          element={
+            <>
+              <ListaClientes />
+              <FormularioCliente />
             </>
           }
         />

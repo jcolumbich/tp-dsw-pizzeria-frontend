@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import type { Repartidor } from "../types";
 import { obtenerRepartidores } from "../services/repartidoresService";
 import "./Listas.css";
@@ -16,7 +17,9 @@ function ListaRepartidores() {
       <ul className="lista-items">
         {repartidores.map((repartidor) => (
           <li key={repartidor.id}>
-            {repartidor.nombre} {repartidor.apellido} — Matrícula: {repartidor.matricula}
+            <Link to={`/repartidores/${repartidor.id}`}>
+              {repartidor.nombre} {repartidor.apellido} — Matrícula: {repartidor.matricula}
+            </Link>
           </li>
         ))}
       </ul>

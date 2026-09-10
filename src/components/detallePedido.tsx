@@ -3,6 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import type { PedidoDetalle } from "../types";
 import { obtenerPedidoPorId } from "../services/pedidosService";
 import "./Listas.css";
+import "./Detalles.css";
 
 function DetallePedido() {
   const { id } = useParams();
@@ -18,18 +19,40 @@ function DetallePedido() {
 
   return (
     <div className="contenedor-pagina">
-      <Link to="/pedidos">← Volver a Pedidos</Link>
+      <Link to="/pedidos" className="detalle-volver">← Volver a Pedidos</Link>
       <h1>Pedido #{pedido.id}</h1>
-      <p>Cliente: {pedido.cliente.nombre}</p>
-      <p>Estado: {pedido.estado}</p>
-      <p>Total: ${pedido.total}</p>
+      <div className="detalle-card">
+        <dl className="detalle-datos">
+          <div className="detalle-fila">
+            <dt>Cliente</dt>
+            <dd>{pedido.cliente.nombre}</dd>
+          </div>
+          <div className="detalle-fila">
+            <dt>Estado</dt>
+            <dd>
+              <span className="detalle-badge">{pedido.estado}</span>
+            </dd>
+          </div>
+          <div className="detalle-fila detalle-fila--total">
+            <dt>Total</dt>
+            <dd>${pedido.total}</dd>
+          </div>
+        </dl>
+      </div>
 
-      <h2>Items</h2>
-      <ul className="lista-items">
+      <h2 className="detalle-seccion-titulo">Items</h2>
+      <ul className="detalle-items">
         {pedido.detalles.map((item, index) => (
-          <li key={index}>
-            {item.pizza.nombre} — Cantidad: {item.cantidad} — Subtotal: $
-            {item.pizza.precio * item.cantidad}
+          <li key={index} className="detalle-item">
+            <span className="detalle-item-nombre">{item.pizza.nombre}</span>
+            <span className="detalle-item-datos">
+              <span>
+                Cantidad: <strong>{item.cantidad}</strong>
+              </span>
+              <span>
+                Subtotal: <strong>${item.pizza.precio * item.cantidad}</strong>
+              </span>
+            </span>
           </li>
         ))}
       </ul>
