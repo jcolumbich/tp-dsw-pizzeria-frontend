@@ -33,7 +33,12 @@ export async function crearPedido(nuevo: NuevoPedido): Promise<Pedido> {
     headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
     body: JSON.stringify(nuevo),
   });
-  if (!response.ok) throw new Error(`Error al crear el pedido: ${response.status}`);
+
+  if (!response.ok) {
+    const body = await response.json().catch(() => null);
+    throw new Error(body?.message || 'No se pudo registrar el pedido');
+  }
+
   const body: ApiResponse<Pedido> = await response.json();
   return body.data;
 }

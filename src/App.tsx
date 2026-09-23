@@ -10,9 +10,11 @@ import MisPedidos from './views/pedido/misPedidos';
 import MiPedidoDetalle from './views/pedido/miPedidoDetalle';
 import ClienteList from './views/cliente/clienteList';
 import LoginForm from './views/auth/LoginForm';
+import RegistroForm from './views/auth/RegistroForm';
 import RutaProtegida from './components/RutaProtegida';
 import { useAuth } from './context/authContext';
 import logo from './assets/logo.png';
+
 import './App.css';
 
 function App() {
@@ -103,12 +105,21 @@ function App() {
               </button>
             </>
           ) : (
-            <NavLink
-              to="/login"
-              className={({ isActive }) => (isActive ? 'active' : '')}
-            >
-              Iniciar sesión
-            </NavLink>
+            <>
+              <NavLink
+                to="/login"
+                className={({ isActive }) => (isActive ? 'active' : '')}
+              >
+                Iniciar sesión
+              </NavLink>
+
+              <NavLink
+                to="/registro"
+                className={({ isActive }) => (isActive ? 'active' : '')}
+              >
+                Registrarse
+              </NavLink>
+            </>
           )}
         </div>
       </nav>
@@ -117,6 +128,8 @@ function App() {
         <section>
           <Routes>
             <Route path="/login" element={<LoginForm />} />
+
+            <Route path="/registro" element={<RegistroForm />} />
 
             <Route
               path="/"

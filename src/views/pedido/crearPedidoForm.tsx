@@ -136,8 +136,9 @@ export default function CrearPedidoForm() {
       setClienteId('');
       setRetiro(false);
     } catch (err) {
-      alert('No se pudo registrar el pedido. Intentá nuevamente.');
-      console.error(err);
+       const mensaje = err instanceof Error ? err.message : 'No se pudo registrar el pedido';
+       alert(mensaje);
+       console.error(err);
     } finally {
       setEnviando(false);
     }
