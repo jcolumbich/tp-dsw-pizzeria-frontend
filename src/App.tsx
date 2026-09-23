@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, NavLink, Link } from 'react-router-dom';
 import IngredientesList from './views/ingrediente/IngredientesList';
 import RepartidorList from './views/repartidor/repartidorList';
 import PizzaList from './views/pizza/pizzaList';
@@ -10,12 +10,12 @@ import MisPedidos from './views/pedido/misPedidos';
 import MiPedidoDetalle from './views/pedido/miPedidoDetalle';
 import ClienteList from './views/cliente/clienteList';
 import LoginForm from './views/auth/LoginForm';
-import RegistroForm from './views/auth/RegistroForm';
 import RutaProtegida from './components/RutaProtegida';
 import { useAuth } from './context/authContext';
+import Inicio from './views/inicio/Inicio';
 import logo from './assets/logo.png';
-
 import './App.css';
+import './Inicio.css';
 
 function App() {
   const { usuario, logout } = useAuth();
@@ -33,6 +33,25 @@ function App() {
         </NavLink>
 
         <div className="navbar-links">
+          <NavLink
+            to="/"
+            end
+            className={({ isActive }) => (isActive ? 'active' : '')}
+          >
+            Inicio
+          </NavLink>
+
+          <Link
+            to="/#carta"
+            onClick={() =>
+              document.getElementById('carta')?.scrollIntoView({
+                behavior: 'smooth',
+              })
+            }
+          >
+            Carta
+          </Link>
+
           {usuario ? (
             <>
               {usuario.nivel_permisos >= 1 && (
@@ -91,35 +110,17 @@ function App() {
                 </NavLink>
               )}
 
-              <button
-                onClick={logout}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: 'white',
-                  cursor: 'pointer',
-                  fontWeight: 600
-                }}
-              >
+              <button className="navbar-salir" onClick={logout}>
                 Salir ({usuario.nombre})
               </button>
             </>
           ) : (
-            <>
-              <NavLink
-                to="/login"
-                className={({ isActive }) => (isActive ? 'active' : '')}
-              >
-                Iniciar sesión
-              </NavLink>
-
-              <NavLink
-                to="/registro"
-                className={({ isActive }) => (isActive ? 'active' : '')}
-              >
-                Registrarse
-              </NavLink>
-            </>
+            <NavLink
+              to="/login"
+              className={({ isActive }) => (isActive ? 'active' : '')}
+            >
+              Iniciar sesión
+            </NavLink>
           )}
         </div>
       </nav>
@@ -129,16 +130,7 @@ function App() {
           <Routes>
             <Route path="/login" element={<LoginForm />} />
 
-            <Route path="/registro" element={<RegistroForm />} />
-
-            <Route
-              path="/"
-              element={
-                <RutaProtegida nivelRequerido={0}>
-                  {(usuario?.nivel_permisos ?? 0) >= 1 ? <IngredientesList /> : <MisPedidos />}
-                </RutaProtegida>
-              }
-            />
+            <Route path="/" element={<Inicio />} />
 
             <Route
               path="/ingredientes"
