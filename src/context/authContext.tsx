@@ -1,7 +1,8 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { UsuarioLogueado } from '../interfaces/auth';
 import { login as loginService } from '../services/authService';
+import { setAuthToken } from '../services/httpCliente';
 
 interface AuthContextType {
   usuario: UsuarioLogueado | null;
@@ -16,43 +17,20 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [usuario, setUsuario] = useState<UsuarioLogueado | null>(null);
   const [token, setToken] = useState<string | null>(null);
-  const [cargandoSesion, setCargandoSesion] = useState(true);
 
-  useEffect(() => {
-    const tokenGuardado = localStorage.getItem('token');
-    const usuarioGuardado = localStorage.getItem('usuario');
+  const login = async (email: string, contrasenia: string) => {
+    const resultado = await loginService(email, contrasenia); setAuthToken(resultado.token);setToken(resultado.token);setUsuario(resultado.usuario);
 
-    if (tokenGuardado && usuarioGuardado) {
-      try {
-        setToken(tokenGuardado);
-        setUsuario(JSON.parse(usuarioGuardado));
-      } catch {
-        localStorage.removeItem('token');
-        localStorage.removeItem('usuario');
-      }
-    }
-
-    setCargandoSesion(false);
-  }, []);
-
-    const login = async (email: string, contrasenia: string) => {
-    const resultado = await loginService(email, contrasenia);
-    setToken(resultado.token);
-    setUsuario(resultado.usuario);
-    localStorage.setItem('token', resultado.token);
-    localStorage.setItem('usuario', JSON.stringify(resultado.usuario));
     return resultado.usuario;
   };
 
-  const logout = () => {
-    setToken(null);
-    setUsuario(null);
-    localStorage.removeItem('token');
-    localStorage.removeItem('usuario');
+  const logout = () => {setAuthToken(null);setToken(null);setUsuario(null);
   };
 
   return (
-    <AuthContext.Provider value={{ usuario, token, cargandoSesion, login, logout }}>
+    <AuthContext.Provider
+      value={{usuario,token,cargandoSesion: false,login,logout,}}
+    >
       {children}
     </AuthContext.Provider>
   );
@@ -60,6 +38,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 export function useAuth() {
   const context = useContext(AuthContext);
-  if (!context) throw new Error('useAuth debe usarse dentro de un AuthProvider');
+  if (!context) {
+    throw new Error('useAuth debe usarse dentro de un AuthProvider');
+  }
   return context;
 }

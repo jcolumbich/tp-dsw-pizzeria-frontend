@@ -24,13 +24,22 @@ export async function getRepartidores(): Promise<Repartidor[]> {
   return body.data;
 }
 
-export async function crearRepartidor(nuevoRepartidor: NuevoRepartidor): Promise<Repartidor> {
+export async function crearRepartidor(
+  nuevoRepartidor: NuevoRepartidor
+): Promise<Repartidor> {
   const response = await fetch(`${API_URL}/repartidores`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
     body: JSON.stringify(nuevoRepartidor),
   });
-  if (!response.ok) throw new Error(`Error al crear repartidor: ${response.status}`);
+
+  if (!response.ok) {
+    const body = await response.json().catch(() => null);
+    throw new Error(
+      body?.message || `Error al crear repartidor: ${response.status}`
+    );
+  }
+
   const body: ApiResponse<Repartidor> = await response.json();
   return body.data;
 }

@@ -59,36 +59,50 @@ export default function CrearPedidoForm() {
   };
 
   const handleAgregarAlCarrito = () => {
-    if (pizzaSeleccionada === '' || cantidadNueva <= 0) {
-      alert('Elegí una pizza y una cantidad mayor a 0.');
-      return;
+  if (
+    pizzaSeleccionada === '' ||
+    !Number.isSafeInteger(cantidadNueva) ||
+    cantidadNueva < 1 ||
+    cantidadNueva > 100
+  ) {
+    alert('Elegí una pizza y una cantidad entera entre 1 y 100.');
+    return;
+  }
+
+  const pizza = pizzas.find((p) => p.id === pizzaSeleccionada);
+  if (!pizza) return;
+
+  const existente = carrito.find((item) => item.pizzaId === pizza.id);
+
+  if (existente && existente.cantidad + cantidadNueva > 100) {
+    alert('No podés agregar más de 100 unidades de la misma pizza.');
+    return;
+  }
+
+  setCarrito((prev) => {
+    if (existente) {
+      return prev.map((item) =>
+        item.pizzaId === pizza.id
+          ? { ...item, cantidad: item.cantidad + cantidadNueva }
+          : item
+      );
     }
 
-    const pizza = pizzas.find((p) => p.id === pizzaSeleccionada);
-    if (!pizza) return;
+    return [
+      ...prev,
+      {
+        pizzaId: pizza.id,
+        cantidad: cantidadNueva,
+        nombrePizza: pizza.nombre,
+        precioUnitario: pizza.precio,
+      },
+    ];
+  });
 
-    setCarrito((prev) => {
-      const existente = prev.find((item) => item.pizzaId === pizza.id);
-      if (existente) {
-        return prev.map((item) =>
-          item.pizzaId === pizza.id ? { ...item, cantidad: item.cantidad + cantidadNueva } : item
-        );
-      }
-      return [
-        ...prev,
-        {
-          pizzaId: pizza.id,
-          cantidad: cantidadNueva,
-          nombrePizza: pizza.nombre,
-          precioUnitario: pizza.precio,
-        },
-      ];
-    });
-
-    setPizzaSeleccionada('');
-    setCantidadNueva(1);
-  };
-
+  setPizzaSeleccionada('');
+  setCantidadNueva(1);
+ }; 
+ 
   const handleQuitarDelCarrito = (pizzaId: number) => {
     setCarrito((prev) => prev.filter((item) => item.pizzaId !== pizzaId));
   };
