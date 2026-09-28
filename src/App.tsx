@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react';
 import { BrowserRouter, Routes, Route, NavLink, Link, Navigate } from 'react-router-dom';
 import IngredientesList from './views/ingrediente/IngredientesList';
 import RepartidorList from './views/repartidor/repartidorList';
@@ -19,10 +20,52 @@ import './Inicio.css';
 
 function App() {
   const { usuario, logout } = useAuth();
+  const [menuOculto, setMenuOculto] = useState(false);
+  const ultimaPosicion = useRef(0);
+
+  useEffect(() => {
+    ultimaPosicion.current = window.scrollY;
+
+    const alDesplazarse = () => {
+      const posicionActual = window.scrollY;
+      const diferencia = posicionActual - ultimaPosicion.current;
+
+      if (posicionActual < 60) {
+        setMenuOculto(false);
+      } else if (Math.abs(diferencia) > 2) {
+        setMenuOculto(diferencia > 0);
+      }
+
+      ultimaPosicion.current = posicionActual;
+    };
+
+    const alUsarRueda = (evento: WheelEvent) => {
+      if (window.scrollY < 60) return;
+      if (evento.deltaY > 2) setMenuOculto(true);
+      if (evento.deltaY < -2) setMenuOculto(false);
+    };
+
+    window.addEventListener('scroll', alDesplazarse, { passive: true });
+    window.addEventListener('wheel', alUsarRueda, { passive: true });
+
+    return () => {
+      window.removeEventListener('scroll', alDesplazarse);
+      window.removeEventListener('wheel', alUsarRueda);
+    };
+  }, []);
 
   return (
     <BrowserRouter>
-      <nav className="navbar">
+      <nav
+        className="navbar"
+        style={{
+          transform: menuOculto
+            ? 'translate3d(0, -110%, 0)'
+            : 'translate3d(0, 0, 0)',
+          transition: 'transform 380ms cubic-bezier(0.22, 1, 0.36, 1)',
+          willChange: 'transform',
+        }}
+      >
         <NavLink to="/" className="navbar-logo" aria-label="Due Paffutelli - Inicio">
           <img src={logo} alt="Due Paffutelli" className="navbar-logo-img" />
         </NavLink>
@@ -34,7 +77,9 @@ function App() {
 
           <Link
             to="/#carta"
-            onClick={() => document.getElementById('carta')?.scrollIntoView({ behavior: 'smooth' })}
+            onClick={() =>
+              document.getElementById('carta')?.scrollIntoView({ behavior: 'smooth' })
+            }
           >
             Carta
           </Link>
@@ -43,19 +88,35 @@ function App() {
             <>
               {usuario.nivel_permisos >= 1 && (
                 <>
-                  <NavLink to="/ingredientes" className={({ isActive }) => (isActive ? 'active' : '')}>
+                  <NavLink
+                    to="/ingredientes"
+                    className={({ isActive }) => (isActive ? 'active' : '')}
+                  >
                     Ingredientes
                   </NavLink>
-                  <NavLink to="/repartidores" className={({ isActive }) => (isActive ? 'active' : '')}>
+                  <NavLink
+                    to="/repartidores"
+                    className={({ isActive }) => (isActive ? 'active' : '')}
+                  >
                     Repartidores
                   </NavLink>
-                  <NavLink to="/pizzas" className={({ isActive }) => (isActive ? 'active' : '')}>
+                  <NavLink
+                    to="/pizzas"
+                    className={({ isActive }) => (isActive ? 'active' : '')}
+                  >
                     Pizzas
                   </NavLink>
-                  <NavLink to="/clientes" className={({ isActive }) => (isActive ? 'active' : '')}>
+                  <NavLink
+                    to="/clientes"
+                    className={({ isActive }) => (isActive ? 'active' : '')}
+                  >
                     Clientes
                   </NavLink>
-                  <NavLink to="/pedidos" end className={({ isActive }) => (isActive ? 'active' : '')}>
+                  <NavLink
+                    to="/pedidos"
+                    end
+                    className={({ isActive }) => (isActive ? 'active' : '')}
+                  >
                     Pedidos
                   </NavLink>
                 </>
@@ -63,10 +124,16 @@ function App() {
 
               {usuario.nivel_permisos === 0 && (
                 <>
-                  <NavLink to="/pedidos/nuevo" className={({ isActive }) => (isActive ? 'active' : '')}>
+                  <NavLink
+                    to="/pedidos/nuevo"
+                    className={({ isActive }) => (isActive ? 'active' : '')}
+                  >
                     Nuevo Pedido
                   </NavLink>
-                  <NavLink to="/mis-pedidos" className={({ isActive }) => (isActive ? 'active' : '')}>
+                  <NavLink
+                    to="/mis-pedidos"
+                    className={({ isActive }) => (isActive ? 'active' : '')}
+                  >
                     Mis Pedidos
                   </NavLink>
                 </>
@@ -77,7 +144,10 @@ function App() {
               </button>
             </>
           ) : (
-            <NavLink to="/login" className={({ isActive }) => (isActive ? 'active' : '')}>
+            <NavLink
+              to="/login"
+              className={({ isActive }) => (isActive ? 'active' : '')}
+            >
               Iniciar sesión
             </NavLink>
           )}
@@ -134,9 +204,11 @@ function App() {
               path="/pedidos/nuevo"
               element={
                 <RutaProtegida nivelRequerido={0}>
-                  {usuario?.nivel_permisos === 0
-                    ? <CrearPedidoForm />
-                    : <Navigate to="/pedidos" replace />}
+                  {usuario?.nivel_permisos === 0 ? (
+                    <CrearPedidoForm />
+                  ) : (
+                    <Navigate to="/pedidos" replace />
+                  )}
                 </RutaProtegida>
               }
             />
