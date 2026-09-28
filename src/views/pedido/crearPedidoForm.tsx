@@ -5,7 +5,10 @@ import type { ItemPedido, Pedido } from '../../interfaces/pedido';
 import { getClientes } from '../../services/clienteService';
 import { getPizzas } from '../../services/pizzaService';
 import { crearPedido } from '../../services/pedidoService';
+import { getIngredientesDePizza } from '../../services/ingredientePizzaService';
+import { obtenerFotoPizza } from '../../services/fotosPizza';
 import { useAuth } from '../../context/authContext';
+import './crearPedidoForm.css';
 
 interface ItemCarrito extends ItemPedido {
   nombrePizza: string;
@@ -14,121 +17,138 @@ interface ItemCarrito extends ItemPedido {
 
 export default function CrearPedidoForm() {
   const { usuario } = useAuth();
-  const esAdmin = usuario ? usuario.nivel_permisos >= 1 : false;
+  const esAdmin = (usuario?.nivel_permisos ?? 0) >= 1;
 
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [pizzas, setPizzas] = useState<Pizza[]>([]);
+  const [ingredientes, setIngredientes] = useState<Record<number, string>>({});
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const [clienteId, setClienteId] = useState<number | ''>('');
   const [retiro, setRetiro] = useState(false);
-
-  const [pizzaSeleccionada, setPizzaSeleccionada] = useState<number | ''>('');
-  const [cantidadNueva, setCantidadNueva] = useState<number>(1);
-
   const [carrito, setCarrito] = useState<ItemCarrito[]>([]);
 
   const [enviando, setEnviando] = useState(false);
   const [pedidoConfirmado, setPedidoConfirmado] = useState<Pedido | null>(null);
 
   useEffect(() => {
-    cargarDatos();
-  }, []);
+    let activo = true;
 
-  const cargarDatos = async () => {
-    try {
-      setCargando(true);
+    const cargarDatos = async () => {
+      try {
+        if (esAdmin) {
+          const [clientesData, pizzasData] = await Promise.all([
+            getClientes(),
+            getPizzas(),
+          ]);
 
-      if (esAdmin) {
-        const [clientesData, pizzasData] = await Promise.all([getClientes(), getPizzas()]);
-        setClientes(clientesData);
-        setPizzas(pizzasData.filter((p) => p.disponible));
-      } else {
-        const pizzasData = await getPizzas();
-        setPizzas(pizzasData.filter((p) => p.disponible));
+          if (!activo) return;
+
+          const disponibles = pizzasData.filter((pizza) => pizza.disponible);
+          setClientes(clientesData);
+          setPizzas(disponibles);
+
+          const composiciones = await Promise.allSettled(
+            disponibles.map((pizza) => getIngredientesDePizza(pizza.id))
+          );
+
+          if (!activo) return;
+
+          const nombres: Record<number, string> = {};
+
+          composiciones.forEach((resultado, indice) => {
+            if (resultado.status === 'fulfilled' && resultado.value.length > 0) {
+              nombres[disponibles[indice].id] = resultado.value
+                .map((item) => item.ingrediente.nombre)
+                .join(', ');
+            }
+          });
+
+          setIngredientes(nombres);
+        } else {
+          const pizzasData = await getPizzas();
+          if (!activo) return;
+
+          setPizzas(pizzasData.filter((pizza) => pizza.disponible));
+        }
+
+        setError(null);
+      } catch (err) {
+        if (activo) {
+          setError('No se pudieron cargar los datos necesarios para el pedido.');
+        }
+        console.error(err);
+      } finally {
+        if (activo) setCargando(false);
+      }
+    };
+
+    void cargarDatos();
+
+    return () => {
+      activo = false;
+    };
+  }, [esAdmin]);
+
+  const cambiarCantidad = (pizza: Pizza, cambio: number) => {
+    setPedidoConfirmado(null);
+
+    setCarrito((anterior) => {
+      const existente = anterior.find((item) => item.pizzaId === pizza.id);
+      const cantidad = (existente?.cantidad ?? 0) + cambio;
+
+      if (cantidad <= 0) {
+        return anterior.filter((item) => item.pizzaId !== pizza.id);
       }
 
-      setError(null);
-    } catch (err) {
-      setError('No se pudieron cargar los datos necesarios para el pedido.');
-      console.error(err);
-    } finally {
-      setCargando(false);
-    }
-  };
+      if (cantidad > 100) return anterior;
 
-  const handleAgregarAlCarrito = () => {
-  if (
-    pizzaSeleccionada === '' ||
-    !Number.isSafeInteger(cantidadNueva) ||
-    cantidadNueva < 1 ||
-    cantidadNueva > 100
-  ) {
-    alert('Elegí una pizza y una cantidad entera entre 1 y 100.');
-    return;
-  }
+      if (existente) {
+        return anterior.map((item) =>
+          item.pizzaId === pizza.id ? { ...item, cantidad } : item
+        );
+      }
 
-  const pizza = pizzas.find((p) => p.id === pizzaSeleccionada);
-  if (!pizza) return;
-
-  const existente = carrito.find((item) => item.pizzaId === pizza.id);
-
-  if (existente && existente.cantidad + cantidadNueva > 100) {
-    alert('No podés agregar más de 100 unidades de la misma pizza.');
-    return;
-  }
-
-  setCarrito((prev) => {
-    if (existente) {
-      return prev.map((item) =>
-        item.pizzaId === pizza.id
-          ? { ...item, cantidad: item.cantidad + cantidadNueva }
-          : item
-      );
-    }
-
-    return [
-      ...prev,
-      {
-        pizzaId: pizza.id,
-        cantidad: cantidadNueva,
-        nombrePizza: pizza.nombre,
-        precioUnitario: pizza.precio,
-      },
-    ];
-  });
-
-  setPizzaSeleccionada('');
-  setCantidadNueva(1);
- }; 
- 
-  const handleQuitarDelCarrito = (pizzaId: number) => {
-    setCarrito((prev) => prev.filter((item) => item.pizzaId !== pizzaId));
+      return [
+        ...anterior,
+        {
+          pizzaId: pizza.id,
+          cantidad,
+          nombrePizza: pizza.nombre,
+          precioUnitario: pizza.precio,
+        },
+      ];
+    });
   };
 
   const totalEstimado = carrito.reduce(
-    (acc, item) => acc + item.precioUnitario * item.cantidad,
+    (total, item) => total + item.precioUnitario * item.cantidad,
     0
   );
 
-  const handleConfirmarPedido = async () => {
+  const confirmarPedido = async () => {
     if (esAdmin && clienteId === '') {
-      alert('Elegí un cliente.');
+      setError('Elegí un cliente.');
       return;
     }
+
     if (carrito.length === 0) {
-      alert('Agregá al menos una pizza al pedido.');
+      setError('Agregá al menos una pizza al pedido.');
       return;
     }
 
     try {
+      setError(null);
       setEnviando(true);
 
       const nuevo = await crearPedido({
         retiro,
         clienteId: esAdmin ? Number(clienteId) : (usuario?.id ?? 0),
-        items: carrito.map(({ pizzaId, cantidad }) => ({ pizzaId, cantidad })),
+        items: carrito.map(({ pizzaId, cantidad }) => ({
+          pizzaId,
+          cantidad,
+        })),
       });
 
       setPedidoConfirmado(nuevo);
@@ -136,47 +156,64 @@ export default function CrearPedidoForm() {
       setClienteId('');
       setRetiro(false);
     } catch (err) {
-       const mensaje = err instanceof Error ? err.message : 'No se pudo registrar el pedido';
-       alert(mensaje);
-       console.error(err);
+      setError(
+        err instanceof Error ? err.message : 'No se pudo registrar el pedido.'
+      );
+      console.error(err);
     } finally {
       setEnviando(false);
     }
   };
 
-  if (cargando) return <p>Cargando datos...</p>;
+  if (cargando) return <p>Cargando pizzas...</p>;
 
   return (
-    <div className="ingredientes-container">
-      <h2>🧾 Registrar Nuevo Pedido</h2>
+    <div className="ingredientes-container pedido-nuevo">
+      <header className="pedido-encabezado">
+        <span className="pedido-etiqueta">
+          DUE PAFFUTELLI · NUEVO PEDIDO
+        </span>
+        <h2>Elegí tus pizzas</h2>
+        <p>Sumá las pizzas que quieras con los botones de cada tarjeta.</p>
+      </header>
 
-      {error && <div className="error-message">⚠️ {error}</div>}
+      {error && (
+        <div className="error-message" role="alert">
+          ⚠️ {error}
+        </div>
+      )}
 
       {pedidoConfirmado && (
-        <div className="crear-ingrediente-form">
+        <div className="crear-ingrediente-form" role="status">
           <h3>✅ Pedido #{pedidoConfirmado.id} registrado</h3>
           <p>
-            Total: <strong>${pedidoConfirmado.total}</strong> — Estado: {pedidoConfirmado.estado}
+            Total: <strong>${pedidoConfirmado.total}</strong> — Estado:{' '}
+            {pedidoConfirmado.estado}
           </p>
         </div>
       )}
 
-      <div className="crear-ingrediente-form">
+      <div className="crear-ingrediente-form pedido-datos">
         <h3>Datos del pedido</h3>
 
         <div className="form">
           {esAdmin ? (
             <div className="form-group">
-              <label>Cliente:</label>
+              <label htmlFor="cliente-pedido">Cliente:</label>
               <select
+                id="cliente-pedido"
                 value={clienteId}
-                onChange={(e) => setClienteId(e.target.value === '' ? '' : Number(e.target.value))}
+                onChange={(e) =>
+                  setClienteId(
+                    e.target.value === '' ? '' : Number(e.target.value)
+                  )
+                }
                 className="form-input"
               >
                 <option value="">Seleccioná un cliente</option>
-                {clientes.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.nombre} {c.apellido}
+                {clientes.map((cliente) => (
+                  <option key={cliente.id} value={cliente.id}>
+                    {cliente.nombre} {cliente.apellido}
                   </option>
                 ))}
               </select>
@@ -192,89 +229,125 @@ export default function CrearPedidoForm() {
 
           <div className="form-group-small">
             <label>
-              <input type="checkbox" checked={retiro} onChange={(e) => setRetiro(e.target.checked)} />{' '}
+              <input
+                type="checkbox"
+                checked={retiro}
+                onChange={(e) => setRetiro(e.target.checked)}
+              />{' '}
               Retiro en el local
             </label>
           </div>
         </div>
       </div>
 
-      <div className="crear-ingrediente-form">
-        <h3>Agregar pizzas al pedido</h3>
+      <h3 className="pedido-carta-titulo">Nuestra carta</h3>
 
-        <div className="form">
-          <div className="form-group">
-            <label>Pizza:</label>
-            <select
-              value={pizzaSeleccionada}
-              onChange={(e) => setPizzaSeleccionada(e.target.value === '' ? '' : Number(e.target.value))}
-              className="form-input"
-            >
-              <option value="">Seleccioná una pizza</option>
-              {pizzas.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.nombre} — ${p.precio}
-                </option>
-              ))}
-            </select>
-          </div>
+      {pizzas.length === 0 ? (
+        <p>No hay pizzas disponibles.</p>
+      ) : (
+        <div className="pedido-pizzas-grid">
+          {pizzas.map((pizza) => {
+            const cantidad =
+              carrito.find((item) => item.pizzaId === pizza.id)?.cantidad ?? 0;
+            const foto = obtenerFotoPizza(pizza.id);
 
-          <div className="form-group-small">
-            <label>Cantidad:</label>
-            <input
-              type="number"
-              value={cantidadNueva}
-              onChange={(e) => setCantidadNueva(Number(e.target.value))}
-              min="1"
-              className="form-input"
-            />
-          </div>
+            return (
+              <article className="pedido-pizza-card" key={pizza.id}>
+                <div className="pedido-pizza-imagen">
+                  {foto ? (
+                    <img src={foto} alt={`Pizza ${pizza.nombre}`} />
+                  ) : (
+                    <div
+                      className="pedido-pizza-sin-foto"
+                      aria-label="Foto pendiente"
+                    >
+                      🍕
+                      <span>Foto de la pizza</span>
+                    </div>
+                  )}
+                </div>
 
-          <div className="form-actions">
-            <button type="button" className="btn-submit" onClick={handleAgregarAlCarrito}>
-              Agregar al pedido
-            </button>
-          </div>
+                <div className="pedido-pizza-contenido">
+                  <div className="pedido-pizza-info">
+                    <h4>{pizza.nombre}</h4>
+                    <strong>${Number(pizza.precio).toFixed(2)}</strong>
+                  </div>
+
+                  <p className="pedido-pizza-ingredientes">
+                    {ingredientes[pizza.id]
+                      ? `Ingredientes: ${ingredientes[pizza.id]}`
+                      : esAdmin
+                        ? 'Ingredientes no cargados o no disponibles'
+                        : 'Consultá los ingredientes en el local'}
+                  </p>
+
+                  <div
+                    className="pedido-pizza-controles"
+                    aria-label={`Cantidad de ${pizza.nombre}`}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => cambiarCantidad(pizza, -1)}
+                      disabled={cantidad === 0 || enviando}
+                      aria-label={`Quitar una ${pizza.nombre}`}
+                    >
+                      −
+                    </button>
+
+                    <output aria-live="polite">{cantidad}</output>
+
+                    <button
+                      type="button"
+                      onClick={() => cambiarCantidad(pizza, 1)}
+                      disabled={cantidad >= 100 || enviando}
+                      aria-label={`Agregar una ${pizza.nombre}`}
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+              </article>
+            );
+          })}
         </div>
-      </div>
-
-      {carrito.length > 0 && (
-        <table className="ingredientes-table">
-          <thead>
-            <tr>
-              <th>Pizza</th>
-              <th>Cantidad</th>
-              <th>Subtotal</th>
-              <th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {carrito.map((item) => (
-              <tr key={item.pizzaId}>
-                <td>{item.nombrePizza}</td>
-                <td>{item.cantidad}</td>
-                <td>${(item.precioUnitario * item.cantidad).toFixed(2)}</td>
-                <td>
-                  <button onClick={() => handleQuitarDelCarrito(item.pizzaId)} className="btn-eliminar">
-                    Quitar
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
       )}
 
-      {carrito.length > 0 && (
-        <div className="crear-ingrediente-form">
-          <h3>Total estimado: ${totalEstimado.toFixed(2)}</h3>
+      <div className="crear-ingrediente-form pedido-resumen">
+        <div>
+          <h3>Tu pedido</h3>
+
+          {carrito.length === 0 ? (
+            <p>Todavía no elegiste pizzas.</p>
+          ) : (
+            <ul>
+              {carrito.map((item) => (
+                <li key={item.pizzaId}>
+                  <span>
+                    {item.cantidad} × {item.nombrePizza}
+                  </span>
+                  <strong>
+                    ${(item.precioUnitario * item.cantidad).toFixed(2)}
+                  </strong>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <div className="pedido-resumen-total">
+          <strong>Total estimado: ${totalEstimado.toFixed(2)}</strong>
           <div className="form-actions">
-            <button className="btn-submit" onClick={handleConfirmarPedido} disabled={enviando}>
+            <button
+              type="button"
+              className="btn-submit"
+              onClick={() => void confirmarPedido()}
+              disabled={enviando || carrito.length === 0}
+            >
               {enviando ? 'Confirmando...' : 'Confirmar Pedido'}
             </button>
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }

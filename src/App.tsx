@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, NavLink, Link } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, NavLink, Link, Navigate } from 'react-router-dom';
 import IngredientesList from './views/ingrediente/IngredientesList';
 import RepartidorList from './views/repartidor/repartidorList';
 import PizzaList from './views/pizza/pizzaList';
@@ -23,31 +23,18 @@ function App() {
   return (
     <BrowserRouter>
       <nav className="navbar">
-        <NavLink to="/" className="navbar-logo">
-          <img
-            src={logo}
-            alt="Pizzería Due Paffutelli"
-            className="navbar-logo-img"
-          />
-          Due Paffutelli
+        <NavLink to="/" className="navbar-logo" aria-label="Due Paffutelli - Inicio">
+          <img src={logo} alt="Due Paffutelli" className="navbar-logo-img" />
         </NavLink>
 
         <div className="navbar-links">
-          <NavLink
-            to="/"
-            end
-            className={({ isActive }) => (isActive ? 'active' : '')}
-          >
+          <NavLink to="/" end className={({ isActive }) => (isActive ? 'active' : '')}>
             Inicio
           </NavLink>
 
           <Link
             to="/#carta"
-            onClick={() =>
-              document.getElementById('carta')?.scrollIntoView({
-                behavior: 'smooth',
-              })
-            }
+            onClick={() => document.getElementById('carta')?.scrollIntoView({ behavior: 'smooth' })}
           >
             Carta
           </Link>
@@ -56,58 +43,33 @@ function App() {
             <>
               {usuario.nivel_permisos >= 1 && (
                 <>
-                  <NavLink
-                    to="/ingredientes"
-                    className={({ isActive }) => (isActive ? 'active' : '')}
-                  >
+                  <NavLink to="/ingredientes" className={({ isActive }) => (isActive ? 'active' : '')}>
                     Ingredientes
                   </NavLink>
-
-                  <NavLink
-                    to="/repartidores"
-                    className={({ isActive }) => (isActive ? 'active' : '')}
-                  >
+                  <NavLink to="/repartidores" className={({ isActive }) => (isActive ? 'active' : '')}>
                     Repartidores
                   </NavLink>
-
-                  <NavLink
-                    to="/pizzas"
-                    className={({ isActive }) => (isActive ? 'active' : '')}
-                  >
+                  <NavLink to="/pizzas" className={({ isActive }) => (isActive ? 'active' : '')}>
                     Pizzas
                   </NavLink>
-
-                  <NavLink
-                    to="/clientes"
-                    className={({ isActive }) => (isActive ? 'active' : '')}
-                  >
+                  <NavLink to="/clientes" className={({ isActive }) => (isActive ? 'active' : '')}>
                     Clientes
                   </NavLink>
-
-                  <NavLink
-                    to="/pedidos"
-                    end
-                    className={({ isActive }) => (isActive ? 'active' : '')}
-                  >
+                  <NavLink to="/pedidos" end className={({ isActive }) => (isActive ? 'active' : '')}>
                     Pedidos
                   </NavLink>
                 </>
               )}
 
-              <NavLink
-                to="/pedidos/nuevo"
-                className={({ isActive }) => (isActive ? 'active' : '')}
-              >
-                Nuevo Pedido
-              </NavLink>
-
               {usuario.nivel_permisos === 0 && (
-                <NavLink
-                  to="/mis-pedidos"
-                  className={({ isActive }) => (isActive ? 'active' : '')}
-                >
-                  Mis Pedidos
-                </NavLink>
+                <>
+                  <NavLink to="/pedidos/nuevo" className={({ isActive }) => (isActive ? 'active' : '')}>
+                    Nuevo Pedido
+                  </NavLink>
+                  <NavLink to="/mis-pedidos" className={({ isActive }) => (isActive ? 'active' : '')}>
+                    Mis Pedidos
+                  </NavLink>
+                </>
               )}
 
               <button className="navbar-salir" onClick={logout}>
@@ -115,10 +77,7 @@ function App() {
               </button>
             </>
           ) : (
-            <NavLink
-              to="/login"
-              className={({ isActive }) => (isActive ? 'active' : '')}
-            >
+            <NavLink to="/login" className={({ isActive }) => (isActive ? 'active' : '')}>
               Iniciar sesión
             </NavLink>
           )}
@@ -129,7 +88,6 @@ function App() {
         <section>
           <Routes>
             <Route path="/login" element={<LoginForm />} />
-
             <Route path="/" element={<Inicio />} />
 
             <Route
@@ -140,7 +98,6 @@ function App() {
                 </RutaProtegida>
               }
             />
-
             <Route
               path="/repartidores"
               element={
@@ -149,7 +106,6 @@ function App() {
                 </RutaProtegida>
               }
             />
-
             <Route
               path="/pizzas"
               element={
@@ -158,7 +114,6 @@ function App() {
                 </RutaProtegida>
               }
             />
-
             <Route
               path="/pizzas/:id"
               element={
@@ -167,7 +122,6 @@ function App() {
                 </RutaProtegida>
               }
             />
-
             <Route
               path="/clientes"
               element={
@@ -176,16 +130,16 @@ function App() {
                 </RutaProtegida>
               }
             />
-
             <Route
               path="/pedidos/nuevo"
               element={
                 <RutaProtegida nivelRequerido={0}>
-                  <CrearPedidoForm />
+                  {usuario?.nivel_permisos === 0
+                    ? <CrearPedidoForm />
+                    : <Navigate to="/pedidos" replace />}
                 </RutaProtegida>
               }
             />
-
             <Route
               path="/mis-pedidos"
               element={
@@ -194,7 +148,6 @@ function App() {
                 </RutaProtegida>
               }
             />
-
             <Route
               path="/mis-pedidos/:id"
               element={
@@ -203,7 +156,6 @@ function App() {
                 </RutaProtegida>
               }
             />
-
             <Route
               path="/pedidos"
               element={
@@ -212,7 +164,6 @@ function App() {
                 </RutaProtegida>
               }
             />
-
             <Route
               path="/pedidos/:id"
               element={

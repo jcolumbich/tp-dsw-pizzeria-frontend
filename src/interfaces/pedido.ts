@@ -36,5 +36,5 @@ export interface Pedido {
   envio?: EnvioPedido;
 }
 
-export const ESTADOS_PEDIDO = ['Pendiente', 'En preparación', 'En camino', 'Entregado', 'Cancelado'] as const;
+export const ESTADOS_PEDIDO = ['Pendiente', 'En preparación', 'En camino', 'Cancelado'] as const;
 export type EstadoPedido = (typeof ESTADOS_PEDIDO)[number];

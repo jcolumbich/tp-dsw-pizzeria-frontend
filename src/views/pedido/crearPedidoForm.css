@@ -1,0 +1,228 @@
+.pedido-nuevo {
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+.pedido-encabezado {
+  margin: 8px 0 34px;
+}
+
+.pedido-etiqueta {
+  color: var(--color-gold);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+}
+
+.pedido-encabezado h2 {
+  margin: 8px 0 6px;
+  font-size: clamp(30px, 4vw, 46px);
+}
+
+.pedido-encabezado p {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.pedido-datos {
+  margin-bottom: 38px;
+}
+
+.pedido-datos .form {
+  align-items: end;
+}
+
+.pedido-carta-titulo {
+  margin: 0 0 18px;
+  font-size: 24px;
+}
+
+.pedido-pizzas-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px;
+  margin-bottom: 42px;
+}
+
+.pedido-pizza-card {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
+.pedido-pizza-imagen {
+  aspect-ratio: 3 / 2;
+  overflow: hidden;
+  background: #f2e6d5;
+}
+
+.pedido-pizza-imagen img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.pedido-pizza-sin-foto {
+  display: flex;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 6px;
+  color: var(--color-text-muted);
+  font-size: 54px;
+}
+
+.pedido-pizza-sin-foto span {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.pedido-pizza-contenido {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  padding: 20px;
+}
+
+.pedido-pizza-info {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.pedido-pizza-info h4 {
+  margin: 0;
+  color: var(--color-text);
+  font-size: 20px;
+}
+
+.pedido-pizza-info strong {
+  color: var(--color-primary);
+  white-space: nowrap;
+}
+
+.pedido-pizza-ingredientes {
+  min-height: 44px;
+  margin: 10px 0 20px;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.pedido-pizza-controles {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 14px;
+  margin-top: auto;
+}
+
+.pedido-pizza-controles button {
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--color-primary);
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: white;
+  cursor: pointer;
+  font-size: 22px;
+  line-height: 1;
+}
+
+.pedido-pizza-controles button:hover:not(:disabled) {
+  background: var(--color-primary-dark);
+}
+
+.pedido-pizza-controles button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.pedido-pizza-controles output {
+  min-width: 22px;
+  text-align: center;
+  font-weight: 700;
+}
+
+.pedido-resumen {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  align-items: end;
+}
+
+.pedido-resumen > div:first-child {
+  flex: 1;
+}
+
+.pedido-resumen ul {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.pedido-resumen li {
+  display: flex;
+  justify-content: space-between;
+  gap: 28px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.pedido-resumen-total {
+  display: flex;
+  align-items: flex-end;
+  flex-direction: column;
+  gap: 12px;
+  white-space: nowrap;
+}
+
+.pedido-resumen-total .form-actions {
+  margin: 0;
+}
+
+/* Vista previa de la foto al crear una pizza */
+.pizza-foto-campo {
+  grid-column: 1 / -1;
+}
+
+.pizza-foto-campo small {
+  color: var(--color-text-muted);
+}
+
+.pizza-foto-previa {
+  width: min(100%, 300px);
+  aspect-ratio: 3 / 2;
+  object-fit: cover;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+}
+
+@media (max-width: 900px) {
+  .pedido-pizzas-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 620px) {
+  .pedido-pizzas-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .pedido-resumen {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .pedido-resumen-total {
+    align-items: stretch;
+    white-space: normal;
+  }
+}

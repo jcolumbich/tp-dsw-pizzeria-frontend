@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { UsuarioLogueado } from '../interfaces/auth';
 import { login as loginService } from '../services/authService';
@@ -19,17 +19,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
 
   const login = async (email: string, contrasenia: string) => {
-    const resultado = await loginService(email, contrasenia); setAuthToken(resultado.token);setToken(resultado.token);setUsuario(resultado.usuario);
+    const resultado = await loginService(email, contrasenia);
+
+    setAuthToken(resultado.token);
+    setToken(resultado.token);
+    setUsuario(resultado.usuario);
 
     return resultado.usuario;
   };
 
-  const logout = () => {setAuthToken(null);setToken(null);setUsuario(null);
+  const logout = () => {
+    setAuthToken(null);
+    setToken(null);
+    setUsuario(null);
   };
+
+  useEffect(() => {
+    const cerrarSesionExpirada = () => {
+      setAuthToken(null);
+      setToken(null);
+      setUsuario(null);
+      window.location.replace('/login');
+    };
+
+    window.addEventListener('sesion-expirada', cerrarSesionExpirada);
+
+    return () => {
+      window.removeEventListener('sesion-expirada', cerrarSesionExpirada);
+    };
+  }, []);
 
   return (
     <AuthContext.Provider
-      value={{usuario,token,cargandoSesion: false,login,logout,}}
+      value={{ usuario, token, cargandoSesion: false, login, logout }}
     >
       {children}
     </AuthContext.Provider>
@@ -38,8 +60,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 export function useAuth() {
   const context = useContext(AuthContext);
+
   if (!context) {
     throw new Error('useAuth debe usarse dentro de un AuthProvider');
   }
+
   return context;
 }

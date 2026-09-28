@@ -33,10 +33,10 @@ export default function LoginForm() {
 
   return (
     <div className="ingredientes-container">
-      <h2>🔐 Iniciar sesión</h2>
+      <h2> Iniciar sesión</h2>
 
       <div className="crear-ingrediente-form">
-        {error && <p className="form-error">⚠️ {error}</p>}
+        {error && <p className="form-error"> {error}</p>}
 
         <form onSubmit={handleSubmit} className="form">
           <div className="form-group">
