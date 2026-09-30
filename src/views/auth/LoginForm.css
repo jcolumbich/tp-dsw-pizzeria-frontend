@@ -1,0 +1,123 @@
+/* Login: layout de 2 columnas (bienvenida + formulario), usando la paleta ya
+   definida en App.css (--color-*, --font-*). Mobile-first: 1 columna por
+   defecto, 2 columnas a partir de 768px. */
+
+.login-container {
+  display: grid;
+  grid-template-columns: 1fr;
+  max-width: 960px;
+  margin: 8px auto 24px;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+}
+
+@media (min-width: 768px) {
+  .login-container {
+    grid-template-columns: 1fr 1fr;
+    min-height: 560px;
+  }
+}
+
+/* Panel izquierdo: bienvenida (oculto en mobile, visible desde 768px) */
+
+.login-panel-bienvenida {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  gap: 16px;
+  padding: 48px 40px;
+  background-color: var(--color-text);
+  color: #fff8ed;
+}
+
+@media (min-width: 768px) {
+  .login-panel-bienvenida {
+    display: flex;
+  }
+}
+
+.login-etiqueta {
+  margin: 0;
+  color: var(--color-gold);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.login-titulo {
+  margin: 0;
+  color: #fff8ed;
+  font-family: var(--font-display);
+  font-size: clamp(28px, 4vw, 38px);
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.login-subtitulo {
+  margin: 0;
+  max-width: 34ch;
+  color: rgba(255, 248, 237, 0.78);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.login-imagen-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 16 / 9;
+  margin-top: 12px;
+  border-radius: var(--radius);
+  background-color: rgba(255, 248, 237, 0.08);
+  border: 1px solid rgba(255, 248, 237, 0.18);
+  font-size: 56px;
+}
+
+/* Panel derecho: formulario */
+
+.login-panel-formulario {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 20px;
+  background-color: var(--color-surface);
+}
+
+@media (min-width: 520px) {
+  .login-panel-formulario {
+    padding: 48px 40px;
+  }
+}
+
+.login-formulario-contenedor {
+  width: 100%;
+  max-width: 380px;
+}
+
+.login-formulario-contenedor h2 {
+  margin-bottom: 8px;
+}
+
+.login-link-registro {
+  margin: 0 0 8px;
+  color: var(--color-text);
+  font-size: 14px;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  margin-top: 20px;
+}
+
+.login-form-actions {
+  margin-top: 4px;
+}
+
+.login-btn-submit {
+  width: 100%;
+}

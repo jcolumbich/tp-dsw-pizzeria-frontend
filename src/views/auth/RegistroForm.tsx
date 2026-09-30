@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { registrarCliente } from '../../services/authService';
 import { useAuth } from '../../context/authContext';
+import './LoginForm.css';
 
 function RegistroForm() {
   const navigate = useNavigate();
@@ -51,53 +52,120 @@ function RegistroForm() {
   }
 
   return (
-    <div className="ingredientes-container">
-      <h2>Crear cuenta</h2>
-
-      {error && <div className="form-error">{error}</div>}
-
-      <div className="crear-ingrediente-form">
-        <form className="form" onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label htmlFor="nombre">Nombre:</label>
-            <input id="nombre" className="form-input" type="text" value={nombre} onChange={(event) => setNombre(event.target.value)} required />
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="apellido">Apellido:</label>
-            <input id="apellido" className="form-input" type="text" value={apellido} onChange={(event) => setApellido(event.target.value)} required />
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="email">Email:</label>
-            <input id="email" className="form-input" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="domicilio">Domicilio:</label>
-            <input id="domicilio" className="form-input" type="text" value={domicilio} onChange={(event) => setDomicilio(event.target.value)} required />
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="contrasenia">Contraseña:</label>
-            <input id="contrasenia" className="form-input" type="password" minLength={6} value={contrasenia} onChange={(event) => setContrasenia(event.target.value)} required />
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="confirmarContrasenia">Confirmar contraseña:</label>
-            <input id="confirmarContrasenia" className="form-input" type="password" minLength={6} value={confirmarContrasenia} onChange={(event) => setConfirmarContrasenia(event.target.value)} required />
-          </div>
-
-          <div className="form-actions">
-            <button className="btn-submit" type="submit" disabled={guardando}>
-              {guardando ? 'Creando cuenta...' : 'Registrarse'}
-            </button>
-          </div>
-        </form>
-
-        <p>
-          ¿Ya tenés una cuenta? <Link to="/login">Iniciar sesión</Link>
+    <div className="login-container">
+      <div className="login-panel-bienvenida">
+        <p className="login-etiqueta">Sumate a la familia</p>
+        <h1 className="login-titulo">Creá tu cuenta y pedí en segundos.</h1>
+        <p className="login-subtitulo">
+          Registrate para guardar tus datos, seguir tus pedidos y repetir tus pizzas favoritas.
         </p>
+        <div className="login-imagen-placeholder" aria-hidden="true">
+          🍕
+        </div>
+      </div>
+
+      <div className="login-panel-formulario">
+        <div className="login-formulario-contenedor">
+          <h2>Crear cuenta</h2>
+
+          <p className="login-link-registro">
+            ¿Ya tenés una cuenta? <Link to="/login">Iniciar sesión</Link>
+          </p>
+
+          {error && <p className="form-error">⚠️ {error}</p>}
+
+          <form onSubmit={handleSubmit} className="login-form">
+            <div className="form-group">
+              <label htmlFor="nombre">Nombre:</label>
+              <input
+                id="nombre"
+                type="text"
+                value={nombre}
+                onChange={(event) => setNombre(event.target.value)}
+                disabled={guardando}
+                className="form-input"
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="apellido">Apellido:</label>
+              <input
+                id="apellido"
+                type="text"
+                value={apellido}
+                onChange={(event) => setApellido(event.target.value)}
+                disabled={guardando}
+                className="form-input"
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="email">Email:</label>
+              <input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                disabled={guardando}
+                className="form-input"
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="domicilio">Domicilio:</label>
+              <input
+                id="domicilio"
+                type="text"
+                value={domicilio}
+                onChange={(event) => setDomicilio(event.target.value)}
+                disabled={guardando}
+                className="form-input"
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="contrasenia">Contraseña:</label>
+              <input
+                id="contrasenia"
+                type="password"
+                minLength={6}
+                value={contrasenia}
+                onChange={(event) => setContrasenia(event.target.value)}
+                disabled={guardando}
+                className="form-input"
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="confirmarContrasenia">Confirmar contraseña:</label>
+              <input
+                id="confirmarContrasenia"
+                type="password"
+                minLength={6}
+                value={confirmarContrasenia}
+                onChange={(event) => setConfirmarContrasenia(event.target.value)}
+                disabled={guardando}
+                className="form-input"
+                required
+              />
+            </div>
+
+            <div className="login-form-actions">
+              <button
+                type="submit"
+                disabled={guardando}
+                className="btn-submit login-btn-submit"
+              >
+                {guardando ? 'Creando cuenta...' : 'Registrarse'}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );

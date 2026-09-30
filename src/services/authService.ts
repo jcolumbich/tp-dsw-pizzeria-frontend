@@ -40,7 +40,7 @@ export async function login(email: string, contrasenia: string): Promise<Respues
 }
 
 export async function registrarCliente(datos: RegistroClienteInput): Promise<ClienteRegistrado> {
-  const response = await fetch(`${API_URL}/auth/registro`, {
+  const response = await fetch(`${API_URL}/auth/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(datos),

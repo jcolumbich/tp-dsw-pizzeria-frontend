@@ -10,6 +10,7 @@ import MisPedidos from './views/pedido/misPedidos';
 import MiPedidoDetalle from './views/pedido/miPedidoDetalle';
 import ClienteList from './views/cliente/clienteList';
 import LoginForm from './views/auth/LoginForm';
+import RegistroForm from './views/auth/RegistroForm';
 import RutaProtegida from './components/RutaProtegida';
 import { useAuth } from './context/authContext';
 import Inicio from './views/inicio/Inicio';
@@ -129,6 +130,8 @@ function App() {
         <section>
           <Routes>
             <Route path="/login" element={<LoginForm />} />
+
+            <Route path="/registro" element={<RegistroForm />} />
 
             <Route path="/" element={<Inicio />} />
 
