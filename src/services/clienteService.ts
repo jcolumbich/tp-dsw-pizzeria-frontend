@@ -1,5 +1,5 @@
 import type { Cliente, NuevoCliente, ActualizarCliente } from '../interfaces/cliente';
-import { getAuthHeaders } from './httpCliente.ts';
+import { fetchAutenticado, getAuthHeaders } from './httpCliente.ts';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
@@ -18,7 +18,7 @@ async function obtenerMensajeError(response: Response, mensajePredeterminado: st
 }
 
 export async function getClientes(): Promise<Cliente[]> {
-  const response = await fetch(`${API_URL}/clientes`, {
+  const response = await fetchAutenticado(`${API_URL}/clientes`, {
     headers: { ...getAuthHeaders() },
   });
 
@@ -32,7 +32,7 @@ export async function getClientes(): Promise<Cliente[]> {
 }
 
 export async function crearCliente(nuevo: NuevoCliente): Promise<Cliente> {
-  const response = await fetch(`${API_URL}/clientes`, {
+  const response = await fetchAutenticado(`${API_URL}/clientes`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
     body: JSON.stringify(nuevo),
@@ -48,7 +48,7 @@ export async function crearCliente(nuevo: NuevoCliente): Promise<Cliente> {
 }
 
 export async function actualizarCliente(id: number, cambios: ActualizarCliente): Promise<Cliente> {
-  const response = await fetch(`${API_URL}/clientes/${id}`, {
+  const response = await fetchAutenticado(`${API_URL}/clientes/${id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
     body: JSON.stringify(cambios),
@@ -64,7 +64,7 @@ export async function actualizarCliente(id: number, cambios: ActualizarCliente):
 }
 
 export async function eliminarCliente(id: number): Promise<void> {
-  const response = await fetch(`${API_URL}/clientes/${id}`, {
+  const response = await fetchAutenticado(`${API_URL}/clientes/${id}`, {
     method: 'DELETE',
     headers: { ...getAuthHeaders() },
   });

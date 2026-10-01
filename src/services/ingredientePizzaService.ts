@@ -1,5 +1,5 @@
 import type { IngredientePizza, NuevoIngredientePizza } from '../interfaces/ingredientePizza';
-import { getAuthHeaders } from './httpCliente.ts';
+import { fetchAutenticado, getAuthHeaders } from './httpCliente.ts';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
@@ -9,7 +9,7 @@ interface ApiResponse<T> {
 }
 
 export async function getIngredientesDePizza(pizzaId: number): Promise<IngredientePizza[]> {
-  const response = await fetch(`${API_URL}/ingrediente-pizza/pizza/${pizzaId}`, {
+  const response = await fetchAutenticado(`${API_URL}/ingrediente-pizza/pizza/${pizzaId}`, {
     headers: { ...getAuthHeaders() },
   });
   if (!response.ok) throw new Error(`Error al obtener la composición de la pizza: ${response.status}`);
@@ -18,7 +18,7 @@ export async function getIngredientesDePizza(pizzaId: number): Promise<Ingredien
 }
 
 export async function agregarIngredienteAPizza(datos: NuevoIngredientePizza): Promise<IngredientePizza> {
-  const response = await fetch(`${API_URL}/ingrediente-pizza`, {
+  const response = await fetchAutenticado(`${API_URL}/ingrediente-pizza`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
     body: JSON.stringify(datos),
@@ -33,7 +33,7 @@ export async function actualizarCantidad(
   ingredienteId: number,
   cantidad: number
 ): Promise<IngredientePizza> {
-  const response = await fetch(`${API_URL}/ingrediente-pizza/${pizzaId}/${ingredienteId}`, {
+  const response = await fetchAutenticado(`${API_URL}/ingrediente-pizza/${pizzaId}/${ingredienteId}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
     body: JSON.stringify({ cantidad }),
@@ -44,7 +44,7 @@ export async function actualizarCantidad(
 }
 
 export async function quitarIngredienteDePizza(pizzaId: number, ingredienteId: number): Promise<void> {
-  const response = await fetch(`${API_URL}/ingrediente-pizza/${pizzaId}/${ingredienteId}`, {
+  const response = await fetchAutenticado(`${API_URL}/ingrediente-pizza/${pizzaId}/${ingredienteId}`, {
     method: 'DELETE',
     headers: { ...getAuthHeaders() },
   });

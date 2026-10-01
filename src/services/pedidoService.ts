@@ -1,5 +1,5 @@
 import type { NuevoPedido, Pedido } from '../interfaces/pedido';
-import { getAuthHeaders } from './httpCliente.ts';
+import { fetchAutenticado, getAuthHeaders } from './httpCliente.ts';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
@@ -10,7 +10,7 @@ interface ApiResponse<T> {
 
 export async function getPedidos(estado?: string): Promise<Pedido[]> {
   const query = estado ? `?estado=${encodeURIComponent(estado)}` : '';
-  const response = await fetch(`${API_URL}/pedidos${query}`, {
+  const response = await fetchAutenticado(`${API_URL}/pedidos${query}`, {
     headers: { ...getAuthHeaders() },
   });
   if (!response.ok) throw new Error(`Error al obtener pedidos: ${response.status}`);
@@ -19,7 +19,7 @@ export async function getPedidos(estado?: string): Promise<Pedido[]> {
 }
 
 export async function getPedidoById(id: number): Promise<Pedido> {
-  const response = await fetch(`${API_URL}/pedidos/${id}`, {
+  const response = await fetchAutenticado(`${API_URL}/pedidos/${id}`, {
     headers: { ...getAuthHeaders() },
   });
   if (!response.ok) throw new Error(`Error al obtener el pedido ${id}: ${response.status}`);
@@ -28,7 +28,7 @@ export async function getPedidoById(id: number): Promise<Pedido> {
 }
 
 export async function crearPedido(nuevo: NuevoPedido): Promise<Pedido> {
-  const response = await fetch(`${API_URL}/pedidos`, {
+  const response = await fetchAutenticado(`${API_URL}/pedidos`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
     body: JSON.stringify(nuevo),
@@ -44,7 +44,7 @@ export async function crearPedido(nuevo: NuevoPedido): Promise<Pedido> {
 }
 
 export async function actualizarEstadoPedido(id: number, estado: string): Promise<Pedido> {
-  const response = await fetch(`${API_URL}/pedidos/${id}`, {
+  const response = await fetchAutenticado(`${API_URL}/pedidos/${id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
     body: JSON.stringify({ estado }),
@@ -55,7 +55,7 @@ export async function actualizarEstadoPedido(id: number, estado: string): Promis
 }
 
 export async function asignarEnvio(id: number, repartidorId: number, costo: number): Promise<Pedido> {
-  const response = await fetch(`${API_URL}/pedidos/${id}/asignar-envio`, {
+  const response = await fetchAutenticado(`${API_URL}/pedidos/${id}/asignar-envio`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
     body: JSON.stringify({ repartidorId, costo }),

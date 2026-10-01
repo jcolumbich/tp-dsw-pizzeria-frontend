@@ -9,3 +9,21 @@ export function getAuthHeaders(): HeadersInit {
     ? { Authorization: `Bearer ${tokenActual}` }
     : {};
 }
+
+export async function fetchAutenticado(
+  url: string,
+  opciones?: RequestInit
+): Promise<Response> {
+  const tokenDeLaSolicitud = tokenActual;
+  const respuesta = await fetch(url, opciones);
+
+  if (
+    respuesta.status === 401 &&
+    tokenDeLaSolicitud &&
+    tokenDeLaSolicitud === tokenActual
+  ) {
+    window.dispatchEvent(new Event('sesion-expirada'));
+  }
+
+  return respuesta;
+}

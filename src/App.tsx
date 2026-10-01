@@ -1,4 +1,5 @@
-import { BrowserRouter, Routes, Route, NavLink, Link } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
+import { BrowserRouter, Routes, Route, NavLink, Link, Navigate } from 'react-router-dom';
 import IngredientesList from './views/ingrediente/IngredientesList';
 import RepartidorList from './views/repartidor/repartidorList';
 import PizzaList from './views/pizza/pizzaList';
@@ -20,34 +21,65 @@ import './Inicio.css';
 
 function App() {
   const { usuario, logout } = useAuth();
+  const [menuOculto, setMenuOculto] = useState(false);
+  const ultimaPosicion = useRef(0);
+
+  useEffect(() => {
+    ultimaPosicion.current = window.scrollY;
+
+    const alDesplazarse = () => {
+      const posicionActual = window.scrollY;
+      const diferencia = posicionActual - ultimaPosicion.current;
+
+      if (posicionActual < 60) {
+        setMenuOculto(false);
+      } else if (Math.abs(diferencia) > 2) {
+        setMenuOculto(diferencia > 0);
+      }
+
+      ultimaPosicion.current = posicionActual;
+    };
+
+    const alUsarRueda = (evento: WheelEvent) => {
+      if (window.scrollY < 60) return;
+      if (evento.deltaY > 2) setMenuOculto(true);
+      if (evento.deltaY < -2) setMenuOculto(false);
+    };
+
+    window.addEventListener('scroll', alDesplazarse, { passive: true });
+    window.addEventListener('wheel', alUsarRueda, { passive: true });
+
+    return () => {
+      window.removeEventListener('scroll', alDesplazarse);
+      window.removeEventListener('wheel', alUsarRueda);
+    };
+  }, []);
 
   return (
     <BrowserRouter>
-      <nav className="navbar">
-        <NavLink to="/" className="navbar-logo">
-          <img
-            src={logo}
-            alt="Pizzería Due Paffutelli"
-            className="navbar-logo-img"
-          />
-          Due Paffutelli
+      <nav
+        className="navbar"
+        style={{
+          transform: menuOculto
+            ? 'translate3d(0, -110%, 0)'
+            : 'translate3d(0, 0, 0)',
+          transition: 'transform 380ms cubic-bezier(0.22, 1, 0.36, 1)',
+          willChange: 'transform',
+        }}
+      >
+        <NavLink to="/" className="navbar-logo" aria-label="Due Paffutelli - Inicio">
+          <img src={logo} alt="Due Paffutelli" className="navbar-logo-img" />
         </NavLink>
 
         <div className="navbar-links">
-          <NavLink
-            to="/"
-            end
-            className={({ isActive }) => (isActive ? 'active' : '')}
-          >
+          <NavLink to="/" end className={({ isActive }) => (isActive ? 'active' : '')}>
             Inicio
           </NavLink>
 
           <Link
             to="/#carta"
             onClick={() =>
-              document.getElementById('carta')?.scrollIntoView({
-                behavior: 'smooth',
-              })
+              document.getElementById('carta')?.scrollIntoView({ behavior: 'smooth' })
             }
           >
             Carta
@@ -63,28 +95,24 @@ function App() {
                   >
                     Ingredientes
                   </NavLink>
-
                   <NavLink
                     to="/repartidores"
                     className={({ isActive }) => (isActive ? 'active' : '')}
                   >
                     Repartidores
                   </NavLink>
-
                   <NavLink
                     to="/pizzas"
                     className={({ isActive }) => (isActive ? 'active' : '')}
                   >
                     Pizzas
                   </NavLink>
-
                   <NavLink
                     to="/clientes"
                     className={({ isActive }) => (isActive ? 'active' : '')}
                   >
                     Clientes
                   </NavLink>
-
                   <NavLink
                     to="/pedidos"
                     end
@@ -95,20 +123,21 @@ function App() {
                 </>
               )}
 
-              <NavLink
-                to="/pedidos/nuevo"
-                className={({ isActive }) => (isActive ? 'active' : '')}
-              >
-                Nuevo Pedido
-              </NavLink>
-
               {usuario.nivel_permisos === 0 && (
-                <NavLink
-                  to="/mis-pedidos"
-                  className={({ isActive }) => (isActive ? 'active' : '')}
-                >
-                  Mis Pedidos
-                </NavLink>
+                <>
+                  <NavLink
+                    to="/pedidos/nuevo"
+                    className={({ isActive }) => (isActive ? 'active' : '')}
+                  >
+                    Nuevo Pedido
+                  </NavLink>
+                  <NavLink
+                    to="/mis-pedidos"
+                    className={({ isActive }) => (isActive ? 'active' : '')}
+                  >
+                    Mis Pedidos
+                  </NavLink>
+                </>
               )}
 
               <button className="navbar-salir" onClick={logout}>
@@ -143,7 +172,6 @@ function App() {
                 </RutaProtegida>
               }
             />
-
             <Route
               path="/repartidores"
               element={
@@ -152,7 +180,6 @@ function App() {
                 </RutaProtegida>
               }
             />
-
             <Route
               path="/pizzas"
               element={
@@ -161,7 +188,6 @@ function App() {
                 </RutaProtegida>
               }
             />
-
             <Route
               path="/pizzas/:id"
               element={
@@ -170,7 +196,6 @@ function App() {
                 </RutaProtegida>
               }
             />
-
             <Route
               path="/clientes"
               element={
@@ -179,16 +204,18 @@ function App() {
                 </RutaProtegida>
               }
             />
-
             <Route
               path="/pedidos/nuevo"
               element={
                 <RutaProtegida nivelRequerido={0}>
-                  <CrearPedidoForm />
+                  {usuario?.nivel_permisos === 0 ? (
+                    <CrearPedidoForm />
+                  ) : (
+                    <Navigate to="/pedidos" replace />
+                  )}
                 </RutaProtegida>
               }
             />
-
             <Route
               path="/mis-pedidos"
               element={
@@ -197,7 +224,6 @@ function App() {
                 </RutaProtegida>
               }
             />
-
             <Route
               path="/mis-pedidos/:id"
               element={
@@ -206,7 +232,6 @@ function App() {
                 </RutaProtegida>
               }
             />
-
             <Route
               path="/pedidos"
               element={
@@ -215,7 +240,6 @@ function App() {
                 </RutaProtegida>
               }
             />
-
             <Route
               path="/pedidos/:id"
               element={

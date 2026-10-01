@@ -1,9 +1,5 @@
-import type {
-  Ingrediente,
-  NuevoIngrediente,
-  ActualizarIngrediente,
-} from '../interfaces/ingrediente';
-import { getAuthHeaders } from './httpCliente.ts';
+import type {Ingrediente,NuevoIngrediente,ActualizarIngrediente,} from '../interfaces/ingrediente';
+import { fetchAutenticado, getAuthHeaders } from './httpCliente.ts';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
@@ -13,7 +9,7 @@ interface ApiResponse<T> {
 }
 
 export async function getIngredientes(): Promise<Ingrediente[]> {
-  const response = await fetch(`${API_URL}/ingredientes`, {
+  const response = await fetchAutenticado(`${API_URL}/ingredientes`, {
     headers: { ...getAuthHeaders() },
   });
 
@@ -26,7 +22,7 @@ export async function getIngredientes(): Promise<Ingrediente[]> {
 }
 
 export async function getIngredienteById(id: number): Promise<Ingrediente> {
-  const response = await fetch(`${API_URL}/ingredientes/${id}`, {
+  const response = await fetchAutenticado(`${API_URL}/ingredientes/${id}`, {
     headers: { ...getAuthHeaders() },
   });
 
@@ -41,7 +37,7 @@ export async function getIngredienteById(id: number): Promise<Ingrediente> {
 export async function crearIngrediente(
   nuevoIngrediente: NuevoIngrediente
 ): Promise<Ingrediente> {
-  const response = await fetch(`${API_URL}/ingredientes`, {
+  const response = await fetchAutenticado(`${API_URL}/ingredientes`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
     body: JSON.stringify(nuevoIngrediente),
@@ -59,7 +55,7 @@ export async function actualizarIngrediente(
   id: number,
   cambios: ActualizarIngrediente
 ): Promise<Ingrediente> {
-  const response = await fetch(`${API_URL}/ingredientes/${id}`, {
+  const response = await fetchAutenticado(`${API_URL}/ingredientes/${id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
     body: JSON.stringify(cambios),
@@ -74,7 +70,7 @@ export async function actualizarIngrediente(
 }
 
 export async function eliminarIngrediente(id: number): Promise<void> {
-  const response = await fetch(`${API_URL}/ingredientes/${id}`, {
+  const response = await fetchAutenticado(`${API_URL}/ingredientes/${id}`, {
     method: 'DELETE',
     headers: { ...getAuthHeaders() },
   });

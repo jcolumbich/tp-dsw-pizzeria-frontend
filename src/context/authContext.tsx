@@ -78,9 +78,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     limpiarStorages();
   };
 
+  useEffect(() => {
+    const cerrarSesionExpirada = () => {
+      setAuthToken(null);
+      setToken(null);
+      setUsuario(null);
+      window.location.replace('/login');
+    };
+
+    window.addEventListener('sesion-expirada', cerrarSesionExpirada);
+
+    return () => {
+      window.removeEventListener('sesion-expirada', cerrarSesionExpirada);
+    };
+  }, []);
+
   return (
     <AuthContext.Provider
-      value={{usuario,token,cargandoSesion,login,logout,}}
+      value={{ usuario, token, cargandoSesion, login, logout }}
     >
       {children}
     </AuthContext.Provider>
@@ -89,8 +104,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 export function useAuth() {
   const context = useContext(AuthContext);
+
   if (!context) {
     throw new Error('useAuth debe usarse dentro de un AuthProvider');
   }
+
   return context;
 }
