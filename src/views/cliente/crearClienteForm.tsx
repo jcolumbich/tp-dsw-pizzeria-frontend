@@ -1,6 +1,8 @@
 import { useState } from 'react';
-import type { NuevoCliente, Cliente } from '../../interfaces/cliente';
+import type { FormEvent } from 'react';
+import type { Cliente } from '../../interfaces/cliente';
 import { crearCliente } from '../../services/clienteService';
+import { crearClienteSchema } from '../../schemas/cliente.schema';
 
 interface Props {
   onClienteCreado: (nuevo: Cliente) => void;
@@ -16,41 +18,38 @@ export default function CrearClienteForm({ onClienteCreado }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (submitting) return;
+    setError(null);
 
-    if (!nombre.trim() || !apellido.trim() || !email.trim() || !contrasenia.trim() || !domicilio.trim()) {
-      setError('Completá todos los campos.');
+    const resultado = crearClienteSchema.safeParse({
+      nombre,
+      apellido,
+      email,
+      contrasenia,
+      nivel_permisos: 0,
+      estado: true,
+      domicilio,
+    });
+
+    if (!resultado.success) {
+      setError(resultado.error.issues[0]?.message ?? 'Revisá los datos ingresados');
       return;
     }
 
     try {
-      setError(null);
       setSubmitting(true);
-
-      const nuevo: NuevoCliente = {
-        nombre: nombre.trim(),
-        apellido: apellido.trim(),
-        email: email.trim().toLowerCase(),
-        contrasenia: contrasenia.trim(),
-        nivel_permisos: 0,
-        estado: true,
-        domicilio: domicilio.trim(),
-      };
-
-      const clienteCreado = await crearCliente(nuevo);
-
+      const clienteCreado = await crearCliente(resultado.data);
       setNombre('');
       setApellido('');
       setEmail('');
       setContrasenia('');
       setMostrarContrasenia(false);
       setDomicilio('');
-
       onClienteCreado(clienteCreado);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo guardar el cliente. Intente nuevamente.');
-      console.error(err);
+      setError(err instanceof Error ? err.message : 'No se pudo guardar el cliente.');
     } finally {
       setSubmitting(false);
     }
@@ -59,13 +58,13 @@ export default function CrearClienteForm({ onClienteCreado }: Props) {
   return (
     <div className="crear-ingrediente-form">
       <h3>Agregar Nuevo Cliente</h3>
+      {error && <p className="form-error" role="alert"> {error}</p>}
 
-      {error && <p className="form-error">⚠️ {error}</p>}
-
-      <form onSubmit={handleSubmit} className="form">
+      <form onSubmit={handleSubmit} className="form" noValidate>
         <div className="form-group">
-          <label>Nombre:</label>
+          <label htmlFor="cliente-nombre">Nombre:</label>
           <input
+            id="cliente-nombre"
             type="text"
             value={nombre}
             onChange={(e) => setNombre(e.target.value)}
@@ -76,8 +75,9 @@ export default function CrearClienteForm({ onClienteCreado }: Props) {
         </div>
 
         <div className="form-group">
-          <label>Apellido:</label>
+          <label htmlFor="cliente-apellido">Apellido:</label>
           <input
+            id="cliente-apellido"
             type="text"
             value={apellido}
             onChange={(e) => setApellido(e.target.value)}
@@ -88,8 +88,9 @@ export default function CrearClienteForm({ onClienteCreado }: Props) {
         </div>
 
         <div className="form-group">
-          <label>Email:</label>
+          <label htmlFor="cliente-email">Email:</label>
           <input
+            id="cliente-email"
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -101,10 +102,10 @@ export default function CrearClienteForm({ onClienteCreado }: Props) {
         </div>
 
         <div className="form-group">
-          <label>Contraseña:</label>
-
+          <label htmlFor="cliente-contrasenia">Contraseña:</label>
           <div className="password-wrapper">
             <input
+              id="cliente-contrasenia"
               type={mostrarContrasenia ? 'text' : 'password'}
               value={contrasenia}
               onChange={(e) => setContrasenia(e.target.value)}
@@ -113,12 +114,13 @@ export default function CrearClienteForm({ onClienteCreado }: Props) {
               autoComplete="new-password"
               required
             />
-
             <button
               type="button"
               onClick={() => setMostrarContrasenia((prev) => !prev)}
+              disabled={submitting}
               className="btn-toggle-password"
-              tabIndex={-1}
+              aria-controls="cliente-contrasenia"
+              aria-label={mostrarContrasenia ? 'Ocultar contraseña' : 'Mostrar contraseña'}
             >
               {mostrarContrasenia ? 'Ocultar' : 'Ver'}
             </button>
@@ -126,8 +128,9 @@ export default function CrearClienteForm({ onClienteCreado }: Props) {
         </div>
 
         <div className="form-group">
-          <label>Domicilio:</label>
+          <label htmlFor="cliente-domicilio">Domicilio:</label>
           <input
+            id="cliente-domicilio"
             type="text"
             value={domicilio}
             onChange={(e) => setDomicilio(e.target.value)}

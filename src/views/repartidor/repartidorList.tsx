@@ -1,61 +1,52 @@
 import { useEffect, useState } from 'react';
 import type { Repartidor } from '../../interfaces/repartidor';
-import {
-  getRepartidores,
-  eliminarRepartidor,
-  actualizarRepartidor,
-} from '../../services/repartidorService';
+import { getRepartidores, eliminarRepartidor, actualizarRepartidor } from '../../services/repartidorService';
+import { editarRepartidorSchema } from '../../schemas/repartidor.schema';
 import CrearRepartidorForm from './crearRepartidorForm';
 
 export default function RepartidorList() {
   const [repartidores, setRepartidores] = useState<Repartidor[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [cargando, setCargando] = useState<boolean>(true);
-
+  const [cargando, setCargando] = useState(true);
+  const [guardando, setGuardando] = useState(false);
   const [editandoId, setEditandoId] = useState<number | null>(null);
   const [nombreEditado, setNombreEditado] = useState('');
   const [apellidoEditado, setApellidoEditado] = useState('');
   const [matriculaEditada, setMatriculaEditada] = useState('');
   const [estadoEditado, setEstadoEditado] = useState(true);
-
   const [confirmandoEliminarId, setConfirmandoEliminarId] = useState<number | null>(null);
 
   useEffect(() => {
-    cargarRepartidores();
+    void cargarRepartidores();
   }, []);
 
   const cargarRepartidores = async () => {
     try {
       setCargando(true);
-      const data = await getRepartidores();
-      setRepartidores(data);
+      setRepartidores(await getRepartidores());
       setError(null);
     } catch (err) {
-      setError('No se pudo conectar con el servidor para obtener los repartidores.');
-      console.error(err);
+      setError(err instanceof Error ? err.message : 'No se pudieron obtener los repartidores.');
     } finally {
       setCargando(false);
     }
   };
 
-  const handleSolicitarEliminar = (id: number) => {
-    setConfirmandoEliminarId(id);
-  };
-
-  const handleCancelarEliminar = () => {
-    setConfirmandoEliminarId(null);
-  };
-
   const handleConfirmarEliminar = async (id: number) => {
+    if (guardando) return;
+    setError(null);
+
     try {
+      setGuardando(true);
       await eliminarRepartidor(id);
       setRepartidores((prev) => prev.filter((item) => item.id !== id));
-      setConfirmandoEliminarId(null);
+      if (editandoId === id) setEditandoId(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al intentar eliminar el repartidor.');
-     setConfirmandoEliminarId(null);
-      console.error(err);
-}
+    } finally {
+      setConfirmandoEliminarId(null);
+      setGuardando(false);
+    }
   };
 
   const handleIniciarEdicion = (rep: Repartidor) => {
@@ -64,32 +55,35 @@ export default function RepartidorList() {
     setApellidoEditado(rep.apellido);
     setMatriculaEditada(rep.matricula);
     setEstadoEditado(rep.estado);
-  };
-
-  const handleCancelarEdicion = () => {
-    setEditandoId(null);
+    setConfirmandoEliminarId(null);
+    setError(null);
   };
 
   const handleGuardarCambios = async (id: number) => {
-    if (!nombreEditado.trim() || !apellidoEditado.trim() || !matriculaEditada.trim()) {
-      setError('Los campos no pueden estar vacíos.');
+    if (guardando) return;
+    setError(null);
+
+    const resultado = editarRepartidorSchema.safeParse({
+      nombre: nombreEditado,
+      apellido: apellidoEditado,
+      matricula: matriculaEditada,
+      estado: estadoEditado,
+    });
+
+    if (!resultado.success) {
+      setError(resultado.error.issues[0]?.message ?? 'Revisá los datos del repartidor');
       return;
     }
+
     try {
-      const repartidorActualizado = await actualizarRepartidor(id, {
-        nombre: nombreEditado.trim(),
-        apellido: apellidoEditado.trim(),
-        matricula: matriculaEditada.trim(),
-        estado: estadoEditado,
-      });
-      setRepartidores((prev) =>
-        prev.map((item) => (item.id === id ? repartidorActualizado : item))
-      );
+      setGuardando(true);
+      const actualizado = await actualizarRepartidor(id, resultado.data);
+      setRepartidores((prev) => prev.map((item) => item.id === id ? actualizado : item));
       setEditandoId(null);
-      setError(null);
     } catch (err) {
-      setError('No se pudo actualizar el repartidor.');
-      console.error(err);
+      setError(err instanceof Error ? err.message : 'No se pudo actualizar el repartidor.');
+    } finally {
+      setGuardando(false);
     }
   };
 
@@ -102,10 +96,8 @@ export default function RepartidorList() {
   return (
     <div className="ingredientes-container">
       <h2>Gestión de Repartidores</h2>
-
       <CrearRepartidorForm onRepartidorCreado={handleRepartidorCreado} />
-
-      {error && <div className="error-message">⚠️ {error}</div>}
+      {error && <div className="error-message" role="alert"> {error}</div>}
 
       {repartidores.length === 0 && !error ? (
         <p>No hay repartidores registrados.</p>
@@ -130,11 +122,11 @@ export default function RepartidorList() {
                       value={nombreEditado}
                       onChange={(e) => setNombreEditado(e.target.value)}
                       className="form-input"
+                      aria-label="Nombre del repartidor"
+                      disabled={guardando}
                       autoFocus
                     />
-                  ) : (
-                    rep.nombre
-                  )}
+                  ) : rep.nombre}
                 </td>
                 <td>
                   {editandoId === rep.id ? (
@@ -143,10 +135,10 @@ export default function RepartidorList() {
                       value={apellidoEditado}
                       onChange={(e) => setApellidoEditado(e.target.value)}
                       className="form-input"
+                      aria-label="Apellido del repartidor"
+                      disabled={guardando}
                     />
-                  ) : (
-                    rep.apellido
-                  )}
+                  ) : rep.apellido}
                 </td>
                 <td>
                   {editandoId === rep.id ? (
@@ -155,10 +147,10 @@ export default function RepartidorList() {
                       value={matriculaEditada}
                       onChange={(e) => setMatriculaEditada(e.target.value)}
                       className="form-input"
+                      aria-label="Matrícula del repartidor"
+                      disabled={guardando}
                     />
-                  ) : (
-                    rep.matricula
-                  )}
+                  ) : rep.matricula}
                 </td>
                 <td>
                   {editandoId === rep.id ? (
@@ -166,39 +158,32 @@ export default function RepartidorList() {
                       value={estadoEditado ? 'true' : 'false'}
                       onChange={(e) => setEstadoEditado(e.target.value === 'true')}
                       className="form-input"
+                      aria-label="Estado del repartidor"
+                      disabled={guardando}
                     >
                       <option value="true">Activo</option>
                       <option value="false">Inactivo</option>
                     </select>
-                  ) : rep.estado ? (
-                    'Activo'
-                  ) : (
-                    'Inactivo'
-                  )}
+                  ) : rep.estado ? 'Activo' : 'Inactivo'}
                 </td>
                 <td>
                   {editandoId === rep.id ? (
                     <>
-                      <button className="btn-submit" onClick={() => handleGuardarCambios(rep.id)}>
-                        Guardar
+                      <button type="button" className="btn-submit" disabled={guardando} onClick={() => void handleGuardarCambios(rep.id)}>
+                        {guardando ? 'Guardando...' : 'Guardar'}
                       </button>
-                      <button onClick={handleCancelarEdicion}>Cancelar</button>
+                      <button type="button" disabled={guardando} onClick={() => setEditandoId(null)}>Cancelar</button>
                     </>
                   ) : confirmandoEliminarId === rep.id ? (
                     <>
                       <span className="confirmar-texto">¿Eliminar?</span>
-                      <button
-                        onClick={() => handleConfirmarEliminar(rep.id)}
-                        className="btn-eliminar"
-                      >
-                        Sí
-                      </button>
-                      <button onClick={handleCancelarEliminar}>No</button>
+                      <button type="button" disabled={guardando} onClick={() => void handleConfirmarEliminar(rep.id)} className="btn-eliminar">Sí</button>
+                      <button type="button" disabled={guardando} onClick={() => setConfirmandoEliminarId(null)}>No</button>
                     </>
                   ) : (
                     <>
-                      <button onClick={() => handleIniciarEdicion(rep)}>Editar</button>
-                      <button onClick={() => handleSolicitarEliminar(rep.id)} className="btn-eliminar">
+                      <button type="button" disabled={guardando} onClick={() => handleIniciarEdicion(rep)}>Editar</button>
+                      <button type="button" disabled={guardando} onClick={() => setConfirmandoEliminarId(rep.id)} className="btn-eliminar">
                         Eliminar
                       </button>
                     </>

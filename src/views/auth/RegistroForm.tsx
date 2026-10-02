@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { registrarCliente } from '../../services/authService';
 import { useAuth } from '../../context/authContext';
 import './LoginForm.css';
+import { registroSchema } from '../../schemas/auth.schema';
 
 function RegistroForm() {
   const navigate = useNavigate();
@@ -18,31 +19,37 @@ function RegistroForm() {
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (guardando) return;
     setError('');
 
-    if (contrasenia.length < 6) {
-      setError('La contraseña debe tener al menos 6 caracteres');
+    const resultado = registroSchema.safeParse({
+      nombre,
+      apellido,
+      email,
+      contrasenia,
+      confirmarContrasenia,
+      domicilio,
+    });
+
+    if (!resultado.success) {
+      setError(resultado.error.issues[0]?.message ?? 'Revisá los datos ingresados');
       return;
     }
 
-    if (contrasenia !== confirmarContrasenia) {
-      setError('Las contraseñas no coinciden');
-      return;
-    }
+    const datos = resultado.data;
 
     try {
       setGuardando(true);
-      const emailNormalizado = email.trim().toLowerCase();
 
       await registrarCliente({
-        nombre: nombre.trim(),
-        apellido: apellido.trim(),
-        email: emailNormalizado,
-        contrasenia,
-        domicilio: domicilio.trim()
+        nombre: datos.nombre,
+        apellido: datos.apellido,
+        email: datos.email,
+        contrasenia: datos.contrasenia,
+        domicilio: datos.domicilio,
       });
 
-      await login(emailNormalizado, contrasenia);
+      await login(datos.email, datos.contrasenia);
       navigate('/pedidos/nuevo');
     } catch (error) {
       setError(error instanceof Error ? error.message : 'No se pudo completar el registro');

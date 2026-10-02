@@ -9,6 +9,7 @@ import { getIngredientesDePizza } from '../../services/ingredientePizzaService';
 import { obtenerFotoPizza } from '../../services/fotosPizza';
 import { useAuth } from '../../context/authContext';
 import './crearPedidoForm.css';
+import { crearPedidoSchema } from '../../schemas/pedido.schema';
 
 interface ItemCarrito extends ItemPedido {
   nombrePizza: string;
@@ -127,39 +128,30 @@ export default function CrearPedidoForm() {
     0
   );
 
-  const confirmarPedido = async () => {
-    if (esAdmin && clienteId === '') {
-      setError('Elegí un cliente.');
-      return;
-    }
+   const confirmarPedido = async () => {
+    if (enviando) return;
+    setError(null);
 
-    if (carrito.length === 0) {
-      setError('Agregá al menos una pizza al pedido.');
+    const resultado = crearPedidoSchema.safeParse({
+      retiro,
+      clienteId: esAdmin ? (clienteId === '' ? undefined : clienteId) : usuario?.id,
+      items: carrito.map(({ pizzaId, cantidad }) => ({ pizzaId, cantidad })),
+    });
+
+    if (!resultado.success) {
+      setError(resultado.error.issues[0]?.message ?? 'Revisá los datos del pedido');
       return;
     }
 
     try {
-      setError(null);
       setEnviando(true);
-
-      const nuevo = await crearPedido({
-        retiro,
-        clienteId: esAdmin ? Number(clienteId) : (usuario?.id ?? 0),
-        items: carrito.map(({ pizzaId, cantidad }) => ({
-          pizzaId,
-          cantidad,
-        })),
-      });
-
+      const nuevo = await crearPedido(resultado.data);
       setPedidoConfirmado(nuevo);
       setCarrito([]);
       setClienteId('');
       setRetiro(false);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : 'No se pudo registrar el pedido.'
-      );
-      console.error(err);
+      setError(err instanceof Error ? err.message : 'No se pudo registrar el pedido.');
     } finally {
       setEnviando(false);
     }

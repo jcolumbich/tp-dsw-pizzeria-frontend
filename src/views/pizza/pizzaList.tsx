@@ -2,22 +2,23 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { Pizza } from '../../interfaces/pizza';
 import { getPizzas, eliminarPizza, actualizarPizza } from '../../services/pizzaService';
+import { crearPizzaSchema } from '../../schemas/pizza.schema';
 import CrearPizzaForm from './crearPizzaForm';
 
 export default function PizzaList() {
   const [pizzas, setPizzas] = useState<Pizza[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [cargando, setCargando] = useState<boolean>(true);
+  const [cargando, setCargando] = useState(true);
+  const [guardando, setGuardando] = useState(false);
   const [filtro, setFiltro] = useState('');
-
   const [editandoId, setEditandoId] = useState<number | null>(null);
   const [nombreEditado, setNombreEditado] = useState('');
-  const [precioEditado, setPrecioEditado] = useState<number>(0);
+  const [precioEditado, setPrecioEditado] = useState('0');
   const [vegetarianaEditada, setVegetarianaEditada] = useState(false);
   const [disponibleEditada, setDisponibleEditada] = useState(true);
 
   useEffect(() => {
-    cargarPizzas();
+    void cargarPizzas();
   }, []);
 
   const cargarPizzas = async () => {
@@ -27,51 +28,67 @@ export default function PizzaList() {
       setPizzas(data);
       setError(null);
     } catch (err) {
-      setError('No se pudo conectar con el servidor para obtener las pizzas.');
-      console.error(err);
+      setError(err instanceof Error ? err.message : 'No se pudieron obtener las pizzas.');
     } finally {
       setCargando(false);
     }
   };
 
   const handleEliminar = async (id: number) => {
+    if (guardando) return;
     if (!window.confirm('¿Estás seguro de que querés eliminar esta pizza?')) return;
+    setError(null);
+
     try {
+      setGuardando(true);
       await eliminarPizza(id);
       setPizzas((prev) => prev.filter((item) => item.id !== id));
+      if (editandoId === id) setEditandoId(null);
     } catch (err) {
-      alert('Error al intentar eliminar la pizza.');
-      console.error(err);
+      setError(err instanceof Error ? err.message : 'Error al intentar eliminar la pizza.');
+    } finally {
+      setGuardando(false);
     }
   };
 
   const handleIniciarEdicion = (p: Pizza) => {
     setEditandoId(p.id);
     setNombreEditado(p.nombre);
-    setPrecioEditado(p.precio);
+    setPrecioEditado(String(p.precio));
     setVegetarianaEditada(p.vegetariana);
     setDisponibleEditada(p.disponible);
+    setError(null);
   };
 
-  const handleCancelarEdicion = () => setEditandoId(null);
+  const handleCancelarEdicion = () => {
+    setEditandoId(null);
+  };
 
   const handleGuardarCambios = async (id: number) => {
-    if (!nombreEditado.trim() || precioEditado <= 0) {
-      alert('Ingresá un nombre válido y un precio mayor a 0.');
+    if (guardando) return;
+    setError(null);
+
+    const resultado = crearPizzaSchema.safeParse({
+      nombre: nombreEditado,
+      precio: precioEditado.trim() === '' ? undefined : Number(precioEditado),
+      vegetariana: vegetarianaEditada,
+      disponible: disponibleEditada,
+    });
+
+    if (!resultado.success) {
+      setError(resultado.error.issues[0]?.message ?? 'Revisá los datos de la pizza');
       return;
     }
+
     try {
-      const pizzaActualizada = await actualizarPizza(id, {
-        nombre: nombreEditado.trim(),
-        precio: precioEditado,
-        vegetariana: vegetarianaEditada,
-        disponible: disponibleEditada,
-      });
-      setPizzas((prev) => prev.map((item) => (item.id === id ? pizzaActualizada : item)));
+      setGuardando(true);
+      const actualizada = await actualizarPizza(id, resultado.data);
+      setPizzas((prev) => prev.map((item) => item.id === id ? actualizada : item));
       setEditandoId(null);
     } catch (err) {
-      alert('No se pudo actualizar la pizza.');
-      console.error(err);
+      setError(err instanceof Error ? err.message : 'No se pudo actualizar la pizza.');
+    } finally {
+      setGuardando(false);
     }
   };
 
@@ -79,23 +96,21 @@ export default function PizzaList() {
     setPizzas((prev) => [...prev, nueva]);
   };
 
-  const pizzasFiltradas = pizzas.filter((p) =>
-    p.nombre.toLowerCase().includes(filtro.toLowerCase())
-  );
+  const pizzasFiltradas = pizzas.filter((p) => p.nombre.toLowerCase().includes(filtro.toLowerCase()));
 
   if (cargando) return <p>Cargando pizzas...</p>;
 
   return (
     <div className="ingredientes-container">
       <h2> Gestión de Pizzas</h2>
-
       <CrearPizzaForm onPizzaCreada={handlePizzaCreada} />
 
-      {error && <div className="error-message">⚠️ {error}</div>}
+      {error && <div className="error-message" role="alert">⚠️ {error}</div>}
 
       <div className="form-group filtro-container">
-        <label>🔍 Buscar por nombre:</label>
+        <label htmlFor="filtro-pizzas">🔍 Buscar por nombre:</label>
         <input
+          id="filtro-pizzas"
           type="text"
           placeholder="Ej. Muzzarella"
           value={filtro}
@@ -127,25 +142,25 @@ export default function PizzaList() {
                       value={nombreEditado}
                       onChange={(e) => setNombreEditado(e.target.value)}
                       className="form-input"
+                      aria-label="Nombre de la pizza"
+                      disabled={guardando}
                       autoFocus
                     />
-                  ) : (
-                    p.nombre
-                  )}
+                  ) : p.nombre}
                 </td>
                 <td>
                   {editandoId === p.id ? (
                     <input
                       type="number"
                       value={precioEditado}
-                      onChange={(e) => setPrecioEditado(Number(e.target.value))}
+                      onChange={(e) => setPrecioEditado(e.target.value)}
                       min="0"
                       step="0.01"
                       className="form-input"
+                      aria-label="Precio de la pizza"
+                      disabled={guardando}
                     />
-                  ) : (
-                    `$${p.precio}`
-                  )}
+                  ) : `$${p.precio}`}
                 </td>
                 <td>
                   {editandoId === p.id ? (
@@ -153,12 +168,10 @@ export default function PizzaList() {
                       type="checkbox"
                       checked={vegetarianaEditada}
                       onChange={(e) => setVegetarianaEditada(e.target.checked)}
+                      aria-label="Pizza vegetariana"
+                      disabled={guardando}
                     />
-                  ) : p.vegetariana ? (
-                    'Sí'
-                  ) : (
-                    'No'
-                  )}
+                  ) : p.vegetariana ? 'Sí' : 'No'}
                 </td>
                 <td>
                   {editandoId === p.id ? (
@@ -166,28 +179,40 @@ export default function PizzaList() {
                       type="checkbox"
                       checked={disponibleEditada}
                       onChange={(e) => setDisponibleEditada(e.target.checked)}
+                      aria-label="Pizza disponible"
+                      disabled={guardando}
                     />
-                  ) : p.disponible ? (
-                    'Sí'
-                  ) : (
-                    'No'
-                  )}
+                  ) : p.disponible ? 'Sí' : 'No'}
                 </td>
                 <td>
                   {editandoId === p.id ? (
                     <>
-                      <button className="btn-submit" onClick={() => handleGuardarCambios(p.id)}>
-                        Guardar
+                      <button
+                        type="button"
+                        className="btn-submit"
+                        disabled={guardando}
+                        onClick={() => void handleGuardarCambios(p.id)}
+                      >
+                        {guardando ? 'Guardando...' : 'Guardar'}
                       </button>
-                      <button onClick={handleCancelarEdicion}>Cancelar</button>
+                      <button type="button" disabled={guardando} onClick={handleCancelarEdicion}>
+                        Cancelar
+                      </button>
                     </>
                   ) : (
                     <>
                       <Link to={`/pizzas/${p.id}`} className="nav-link" style={{ marginRight: '8px' }}>
                         Ingredientes
                       </Link>
-                      <button onClick={() => handleIniciarEdicion(p)}>Editar</button>
-                      <button onClick={() => handleEliminar(p.id)} className="btn-eliminar">
+                      <button type="button" disabled={guardando} onClick={() => handleIniciarEdicion(p)}>
+                        Editar
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-eliminar"
+                        disabled={guardando}
+                        onClick={() => void handleEliminar(p.id)}
+                      >
                         Eliminar
                       </button>
                     </>

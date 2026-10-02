@@ -1,6 +1,8 @@
 import { useState } from 'react';
+import type { FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/authContext';
+import { loginSchema } from '../../schemas/auth.schema';
 import './LoginForm.css';
 
 export default function LoginForm() {
@@ -13,18 +15,22 @@ export default function LoginForm() {
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (submitting) return;
     setError(null);
 
-    if (!email.trim() || !contrasenia.trim()) {
-      setError('Completá email y contraseña.');
+    const resultado = loginSchema.safeParse({ email, contrasenia });
+    if (!resultado.success) {
+      setError(resultado.error.issues[0]?.message ?? 'Revisá los datos ingresados');
       return;
     }
 
+    const datos = resultado.data;
+
     try {
       setSubmitting(true);
-      const usuario = await login(email.trim(), contrasenia, recordar);
+      const usuario = await login(datos.email, datos.contrasenia, recordar);
       navigate(usuario.nivel_permisos >= 1 ? '/' : '/pedidos/nuevo');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo iniciar sesión.');
@@ -49,14 +55,13 @@ export default function LoginForm() {
       <div className="login-panel-formulario">
         <div className="login-formulario-contenedor">
           <h2>🔐 Iniciar sesión</h2>
-
           <p className="login-link-registro">
             ¿Primera vez? <Link to="/registro">Creá tu cuenta</Link>
           </p>
 
-          {error && <p className="form-error">⚠️ {error}</p>}
+          {error && <p className="form-error" role="alert">⚠️ {error}</p>}
 
-          <form onSubmit={handleSubmit} className="login-form">
+          <form onSubmit={handleSubmit} className="login-form" noValidate>
             <div className="form-group">
               <label htmlFor="email">Email:</label>
               <input
@@ -66,6 +71,8 @@ export default function LoginForm() {
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={submitting}
                 className="form-input"
+                autoComplete="username"
+                required
               />
             </div>
 
@@ -78,6 +85,8 @@ export default function LoginForm() {
                 onChange={(e) => setContrasenia(e.target.value)}
                 disabled={submitting}
                 className="form-input"
+                autoComplete="current-password"
+                required
               />
             </div>
 
@@ -94,11 +103,7 @@ export default function LoginForm() {
             </div>
 
             <div className="login-form-actions">
-              <button
-                type="submit"
-                disabled={submitting}
-                className="btn-submit login-btn-submit"
-              >
+              <button type="submit" disabled={submitting} className="btn-submit login-btn-submit">
                 {submitting ? 'Ingresando...' : 'Ingresar'}
               </button>
             </div>

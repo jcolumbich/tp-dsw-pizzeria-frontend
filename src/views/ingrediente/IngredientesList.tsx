@@ -1,25 +1,21 @@
 import { useEffect, useState } from 'react';
 import type { Ingrediente } from '../../interfaces/ingrediente';
-import {
-  getIngredientes,
-  eliminarIngrediente,
-  actualizarIngrediente,
-} from '../../services/ingredienteService';
+import { getIngredientes, eliminarIngrediente, actualizarIngrediente } from '../../services/ingredienteService';
+import { crearIngredienteSchema } from '../../schemas/ingrediente.schema';
 import CrearIngredienteForm from './crearIngredienteForm';
 
 export default function IngredientesList() {
   const [ingredientes, setIngredientes] = useState<Ingrediente[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [cargando, setCargando] = useState<boolean>(true);
-
+  const [cargando, setCargando] = useState(true);
+  const [guardando, setGuardando] = useState(false);
   const [editandoId, setEditandoId] = useState<number | null>(null);
-  const [nombreEditado, setNombreEditado] = useState<string>('');
-  const [stockEditado, setStockEditado] = useState<number>(0);
-
+  const [nombreEditado, setNombreEditado] = useState('');
+  const [stockEditado, setStockEditado] = useState('0');
   const [confirmandoEliminarId, setConfirmandoEliminarId] = useState<number | null>(null);
 
   useEffect(() => {
-    cargarIngredientes();
+    void cargarIngredientes();
   }, []);
 
   const cargarIngredientes = async () => {
@@ -29,8 +25,7 @@ export default function IngredientesList() {
       setIngredientes(data);
       setError(null);
     } catch (err) {
-      setError('No se pudo conectar con el servidor para obtener los ingredientes.');
-      console.error(err);
+      setError(err instanceof Error ? err.message : 'No se pudieron obtener los ingredientes.');
     } finally {
       setCargando(false);
     }
@@ -45,50 +40,59 @@ export default function IngredientesList() {
   };
 
   const handleConfirmarEliminar = async (id: number) => {
+    if (guardando) return;
+    setError(null);
+
     try {
+      setGuardando(true);
       await eliminarIngrediente(id);
       setIngredientes((prev) => prev.filter((item) => item.id !== id));
       setConfirmandoEliminarId(null);
+      if (editandoId === id) setEditandoId(null);
     } catch (err) {
-      setError('Error al intentar eliminar el ingrediente.');
-      console.error(err);
+      setError(err instanceof Error ? err.message : 'Error al intentar eliminar el ingrediente.');
+    } finally {
+      setGuardando(false);
     }
   };
 
   const handleIniciarEdicion = (ing: Ingrediente) => {
     setEditandoId(ing.id);
     setNombreEditado(ing.nombre);
-    setStockEditado(ing.stock);
+    setStockEditado(String(ing.stock));
+    setConfirmandoEliminarId(null);
+    setError(null);
   };
 
   const handleCancelarEdicion = () => {
     setEditandoId(null);
     setNombreEditado('');
-    setStockEditado(0);
+    setStockEditado('0');
   };
 
   const handleGuardarCambios = async (id: number) => {
-    if (!nombreEditado.trim()) {
-      setError('El nombre no puede estar vacío.');
+    if (guardando) return;
+    setError(null);
+
+    const resultado = crearIngredienteSchema.safeParse({
+      nombre: nombreEditado,
+      stock: stockEditado.trim() === '' ? undefined : Number(stockEditado),
+    });
+
+    if (!resultado.success) {
+      setError(resultado.error.issues[0]?.message ?? 'Revisá los datos del ingrediente');
       return;
     }
-    if (stockEditado < 0) {
-      setError('El stock no puede ser negativo.');
-      return;
-    }
+
     try {
-      const ingredienteActualizado = await actualizarIngrediente(id, {
-        nombre: nombreEditado.trim(),
-        stock: stockEditado,
-      });
-      setIngredientes((prev) =>
-        prev.map((item) => (item.id === id ? ingredienteActualizado : item))
-      );
-      setEditandoId(null);
-      setError(null);
+      setGuardando(true);
+      const actualizado = await actualizarIngrediente(id, resultado.data);
+      setIngredientes((prev) => prev.map((item) => item.id === id ? actualizado : item));
+      handleCancelarEdicion();
     } catch (err) {
-      setError('No se pudo actualizar el ingrediente.');
-      console.error(err);
+      setError(err instanceof Error ? err.message : 'No se pudo actualizar el ingrediente.');
+    } finally {
+      setGuardando(false);
     }
   };
 
@@ -101,14 +105,9 @@ export default function IngredientesList() {
   return (
     <div className="ingredientes-container">
       <h2> Gestión de Stock de Ingredientes</h2>
-
       <CrearIngredienteForm onIngredienteCreado={handleIngredienteCreado} />
 
-      {error && (
-        <div className="error-message">
-          ⚠️ {error}
-        </div>
-      )}
+      {error && <div className="error-message" role="alert">⚠️ {error}</div>}
 
       {ingredientes.length === 0 && !error ? (
         <p>No hay ingredientes registrados.</p>
@@ -131,51 +130,66 @@ export default function IngredientesList() {
                       value={nombreEditado}
                       onChange={(e) => setNombreEditado(e.target.value)}
                       className="form-input"
+                      aria-label="Nombre del ingrediente"
+                      disabled={guardando}
                       autoFocus
                     />
-                  ) : (
-                    ing.nombre
-                  )}
+                  ) : ing.nombre}
                 </td>
                 <td>
                   {editandoId === ing.id ? (
                     <input
                       type="number"
                       value={stockEditado}
-                      onChange={(e) => setStockEditado(Number(e.target.value))}
+                      onChange={(e) => setStockEditado(e.target.value)}
                       min="0"
                       step="0.01"
                       className="form-input"
+                      aria-label="Stock del ingrediente"
+                      disabled={guardando}
                     />
-                  ) : (
-                    ing.stock
-                  )}
+                  ) : ing.stock}
                 </td>
                 <td>
                   {editandoId === ing.id ? (
                     <>
-                      <button className="btn-submit" onClick={() => handleGuardarCambios(ing.id)}>
-                        Guardar
+                      <button
+                        type="button"
+                        className="btn-submit"
+                        disabled={guardando}
+                        onClick={() => void handleGuardarCambios(ing.id)}
+                      >
+                        {guardando ? 'Guardando...' : 'Guardar'}
                       </button>
-                      <button onClick={handleCancelarEdicion}>Cancelar</button>
+                      <button type="button" disabled={guardando} onClick={handleCancelarEdicion}>
+                        Cancelar
+                      </button>
                     </>
                   ) : confirmandoEliminarId === ing.id ? (
                     <>
                       <span className="confirmar-texto">¿Eliminar?</span>
                       <button
-                        onClick={() => handleConfirmarEliminar(ing.id)}
+                        type="button"
                         className="btn-eliminar"
+                        disabled={guardando}
+                        onClick={() => void handleConfirmarEliminar(ing.id)}
                       >
                         Sí
                       </button>
-                      <button onClick={handleCancelarEliminar}>No</button>
+                      <button type="button" disabled={guardando} onClick={handleCancelarEliminar}>
+                        No
+                      </button>
                     </>
                   ) : (
                     <>
-                      <button onClick={() => handleIniciarEdicion(ing)}>Editar</button>
+                      <button type="button" disabled={guardando} onClick={() => handleIniciarEdicion(ing)}>
+                        Editar
+                      </button>
                       <button
-                        onClick={() => handleSolicitarEliminar(ing.id)}
+                        type="button"
                         className="btn-eliminar"
+                        disabled={guardando}
+                        onClick={() => handleSolicitarEliminar(ing.id)}
                       >
                         Eliminar
                       </button>

@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
+import type { FormEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import type { Pedido } from '../../interfaces/pedido';
 import type { Repartidor } from '../../interfaces/repartidor';
 import { actualizarEstadoPedido, asignarEnvio, getPedidoById } from '../../services/pedidoService';
 import { getRepartidores } from '../../services/repartidorService';
+import { asignarEnvioSchema } from '../../schemas/pedido.schema';
 
 export default function PedidoDetalle() {
   const { id } = useParams<{ id: string }>();
@@ -11,7 +13,7 @@ export default function PedidoDetalle() {
   const [pedido, setPedido] = useState<Pedido | null>(null);
   const [repartidores, setRepartidores] = useState<Repartidor[]>([]);
   const [repartidorId, setRepartidorId] = useState<number | ''>('');
-  const [costo, setCosto] = useState(0);
+  const [costo, setCosto] = useState('0');
   const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -20,18 +22,30 @@ export default function PedidoDetalle() {
     let activo = true;
 
     const cargar = async () => {
+      setCargando(true);
+      setError(null);
+      setPedido(null);
+
       try {
+        if (!Number.isSafeInteger(pedidoId) || pedidoId <= 0) {
+          throw new Error('El ID del pedido debe ser un entero positivo válido.');
+        }
+
         const [datos, lista] = await Promise.all([
           getPedidoById(pedidoId),
           getRepartidores().catch(() => []),
         ]);
+
         if (activo) {
           setPedido(datos);
           setRepartidores(lista.filter((r) => r.estado));
+          setRepartidorId('');
+          setCosto('0');
         }
       } catch (err) {
-        if (activo) setError('No se pudo cargar el pedido.');
-        console.error(err);
+        if (activo) {
+          setError(err instanceof Error ? err.message : 'No se pudo cargar el pedido.');
+        }
       } finally {
         if (activo) setCargando(false);
       }
@@ -42,7 +56,7 @@ export default function PedidoDetalle() {
   }, [pedidoId]);
 
   const cambiarEstado = async (estado: 'En preparación' | 'Cancelado') => {
-    if (!pedido) return;
+    if (!pedido || guardando) return;
     if (estado === 'Cancelado' && !window.confirm('¿Cancelar este pedido? Se repondrá su stock.')) return;
 
     try {
@@ -56,14 +70,25 @@ export default function PedidoDetalle() {
     }
   };
 
-  const guardarEnvio = async (e: React.FormEvent) => {
+  const guardarEnvio = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!pedido || repartidorId === '') return;
+    if (!pedido || guardando) return;
+    setError(null);
+
+    const resultado = asignarEnvioSchema.safeParse({
+      repartidorId: repartidorId === '' ? undefined : repartidorId,
+      costo: costo.trim() === '' ? undefined : Number(costo),
+    });
+
+    if (!resultado.success) {
+      setError(resultado.error.issues[0]?.message ?? 'Revisá los datos del envío');
+      return;
+    }
 
     try {
       setGuardando(true);
-      setError(null);
-      setPedido(await asignarEnvio(pedido.id, repartidorId, costo));
+      const datos = resultado.data;
+      setPedido(await asignarEnvio(pedido.id, datos.repartidorId, datos.costo));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo asignar el envío.');
     } finally {
@@ -130,7 +155,7 @@ export default function PedidoDetalle() {
               {' '}— Costo: ${pedido.envio.costo.toFixed(2)}
             </p>
           ) : pedido.estado === 'En preparación' ? (
-            <form className="form" onSubmit={(e) => void guardarEnvio(e)}>
+            <form className="form" onSubmit={(e) => void guardarEnvio(e)} noValidate>
               <div className="form-group">
                 <label htmlFor="repartidor-pedido">Repartidor</label>
                 <select
@@ -138,6 +163,7 @@ export default function PedidoDetalle() {
                   className="form-input"
                   value={repartidorId}
                   onChange={(e) => setRepartidorId(e.target.value === '' ? '' : Number(e.target.value))}
+                  disabled={guardando}
                   required
                 >
                   <option value="">Seleccioná un repartidor</option>
@@ -158,7 +184,8 @@ export default function PedidoDetalle() {
                   min="0"
                   step="0.01"
                   value={costo}
-                  onChange={(e) => setCosto(Number(e.target.value))}
+                  onChange={(e) => setCosto(e.target.value)}
+                  disabled={guardando}
                   required
                 />
               </div>

@@ -1,6 +1,8 @@
 import { useState } from 'react';
-import type { NuevoIngrediente, Ingrediente } from '../../interfaces/ingrediente';
+import type { FormEvent } from 'react';
+import type { Ingrediente } from '../../interfaces/ingrediente';
 import { crearIngrediente } from '../../services/ingredienteService';
+import { crearIngredienteSchema } from '../../schemas/ingrediente.schema';
 
 interface Props {
   onIngredienteCreado: (nuevo: Ingrediente) => void;
@@ -8,36 +10,33 @@ interface Props {
 
 export default function CrearIngredienteForm({ onIngredienteCreado }: Props) {
   const [nombre, setNombre] = useState('');
-  const [stock, setStock] = useState<number>(0);
+  const [stock, setStock] = useState('0');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (submitting) return;
+    setError(null);
 
-    if (!nombre.trim() || stock < 0) {
-      setError('Por favor, ingresá un nombre válido y un stock mayor o igual a 0.');
+    const resultado = crearIngredienteSchema.safeParse({
+      nombre,
+      stock: stock.trim() === '' ? undefined : Number(stock),
+    });
+
+    if (!resultado.success) {
+      setError(resultado.error.issues[0]?.message ?? 'Revisá los datos ingresados');
       return;
     }
 
     try {
-      setError(null);
       setSubmitting(true);
-
-      const nuevo: NuevoIngrediente = {
-        nombre: nombre.trim(),
-        stock: stock,
-      };
-
-      const ingredienteCreado = await crearIngrediente(nuevo);
-
+      const ingredienteCreado = await crearIngrediente(resultado.data);
       setNombre('');
-      setStock(0);
-
+      setStock('0');
       onIngredienteCreado(ingredienteCreado);
     } catch (err) {
-      setError('No se pudo guardar el ingrediente. Intente nuevamente.');
-      console.error(err);
+      setError(err instanceof Error ? err.message : 'No se pudo guardar el ingrediente.');
     } finally {
       setSubmitting(false);
     }
@@ -46,41 +45,40 @@ export default function CrearIngredienteForm({ onIngredienteCreado }: Props) {
   return (
     <div className="crear-ingrediente-form">
       <h3> + Agregar Nuevo Ingrediente</h3>
+      {error && <p className="form-error" role="alert"> {error}</p>}
 
-      {error && <p className="form-error">⚠️ {error}</p>}
-
-      <form onSubmit={handleSubmit} className="form">
+      <form onSubmit={handleSubmit} className="form" noValidate>
         <div className="form-group">
-          <label>Nombre:</label>
+          <label htmlFor="ingrediente-nombre">Nombre:</label>
           <input
+            id="ingrediente-nombre"
             type="text"
             value={nombre}
             onChange={(e) => setNombre(e.target.value)}
             placeholder="Ej. Jamón"
             disabled={submitting}
             className="form-input"
+            required
           />
         </div>
 
         <div className="form-group-small">
-          <label>Stock:</label>
+          <label htmlFor="ingrediente-stock">Stock:</label>
           <input
+            id="ingrediente-stock"
             type="number"
             value={stock}
-            onChange={(e) => setStock(Number(e.target.value))}
+            onChange={(e) => setStock(e.target.value)}
             min="0"
             step="0.01"
             disabled={submitting}
             className="form-input"
+            required
           />
         </div>
 
         <div className="form-actions">
-          <button
-            type="submit"
-            disabled={submitting}
-            className="btn-submit"
-          >
+          <button type="submit" disabled={submitting} className="btn-submit">
             {submitting ? 'Guardando...' : 'Guardar Ingrediente'}
           </button>
         </div>
