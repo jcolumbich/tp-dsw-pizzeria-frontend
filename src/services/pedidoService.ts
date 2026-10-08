@@ -22,7 +22,11 @@ export async function getPedidoById(id: number): Promise<Pedido> {
   const response = await fetchAutenticado(`${API_URL}/pedidos/${id}`, {
     headers: { ...getAuthHeaders() },
   });
-  if (!response.ok) throw new Error(`Error al obtener el pedido ${id}: ${response.status}`);
+  if (!response.ok) {
+    throw Object.assign(new Error(`Error al obtener el pedido ${id}: ${response.status}`), {
+      status: response.status,
+    });
+  }
   const body: ApiResponse<Pedido> = await response.json();
   return body.data;
 }

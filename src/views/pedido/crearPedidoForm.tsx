@@ -1,99 +1,97 @@
-import { useEffect, useState } from 'react';
-import type { Cliente } from '../../interfaces/cliente';
+import { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import type { Pizza } from '../../interfaces/pizza';
 import type { ItemPedido, Pedido } from '../../interfaces/pedido';
-import { getClientes } from '../../services/clienteService';
 import { getPizzas } from '../../services/pizzaService';
 import { crearPedido } from '../../services/pedidoService';
-import { getIngredientesDePizza } from '../../services/ingredientePizzaService';
-import { obtenerFotoPizza } from '../../services/fotosPizza';
 import { useAuth } from '../../context/authContext';
-import './crearPedidoForm.css';
 import { crearPedidoSchema } from '../../schemas/pedido.schema';
+import { formatearPrecio } from '../../utils/formato';
+import ControlCantidad from '../../components/ControlCantidad';
+import AlertaError from '../../components/AlertaError';
+import SelectorSegmentado from '../../components/SelectorSegmentado';
+import { IconoCheck, IconoChevronArriba, IconoHoja, IconoX } from '../../components/iconos';
+import './crearPedidoForm.css';
 
 interface ItemCarrito extends ItemPedido {
   nombrePizza: string;
   precioUnitario: number;
 }
 
+type Modalidad = 'retiro' | 'envio';
+
+const NOTA_ENVIO_ID = 'modalidad-nota';
+
 export default function CrearPedidoForm() {
   const { usuario } = useAuth();
-  const esAdmin = (usuario?.nivel_permisos ?? 0) >= 1;
 
-  const [clientes, setClientes] = useState<Cliente[]>([]);
   const [pizzas, setPizzas] = useState<Pizza[]>([]);
-  const [ingredientes, setIngredientes] = useState<Record<number, string>>({});
   const [cargando, setCargando] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [errorCarga, setErrorCarga] = useState<string | null>(null);
 
-  const [clienteId, setClienteId] = useState<number | ''>('');
   const [retiro, setRetiro] = useState(false);
   const [carrito, setCarrito] = useState<ItemCarrito[]>([]);
+  const [resumenAbierto, setResumenAbierto] = useState(false);
 
   const [enviando, setEnviando] = useState(false);
+  const [errorPedido, setErrorPedido] = useState<string | null>(null);
+  const [pizzaNombreConError, setPizzaNombreConError] = useState<string | null>(null);
   const [pedidoConfirmado, setPedidoConfirmado] = useState<Pedido | null>(null);
+
+  const toggleRef = useRef<HTMLButtonElement>(null);
+  const tituloExitoRef = useRef<HTMLHeadingElement>(null);
 
   useEffect(() => {
     let activo = true;
 
-    const cargarDatos = async () => {
+    const cargarPizzas = async () => {
       try {
-        if (esAdmin) {
-          const [clientesData, pizzasData] = await Promise.all([
-            getClientes(),
-            getPizzas(),
-          ]);
-
-          if (!activo) return;
-
-          const disponibles = pizzasData.filter((pizza) => pizza.disponible);
-          setClientes(clientesData);
-          setPizzas(disponibles);
-
-          const composiciones = await Promise.allSettled(
-            disponibles.map((pizza) => getIngredientesDePizza(pizza.id))
-          );
-
-          if (!activo) return;
-
-          const nombres: Record<number, string> = {};
-
-          composiciones.forEach((resultado, indice) => {
-            if (resultado.status === 'fulfilled' && resultado.value.length > 0) {
-              nombres[disponibles[indice].id] = resultado.value
-                .map((item) => item.ingrediente.nombre)
-                .join(', ');
-            }
-          });
-
-          setIngredientes(nombres);
-        } else {
-          const pizzasData = await getPizzas();
-          if (!activo) return;
-
-          setPizzas(pizzasData.filter((pizza) => pizza.disponible));
-        }
-
-        setError(null);
+        const pizzasData = await getPizzas();
+        if (!activo) return;
+        setPizzas(pizzasData);
+        setErrorCarga(null);
       } catch (err) {
-        if (activo) {
-          setError('No se pudieron cargar los datos necesarios para el pedido.');
-        }
+        if (activo) setErrorCarga('No se pudieron cargar las pizzas.');
         console.error(err);
       } finally {
         if (activo) setCargando(false);
       }
     };
 
-    void cargarDatos();
+    void cargarPizzas();
 
     return () => {
       activo = false;
     };
-  }, [esAdmin]);
+  }, []);
+
+  useEffect(() => {
+    if (!resumenAbierto) return;
+
+    const alPresionarTecla = (evento: KeyboardEvent) => {
+      if (evento.key === 'Escape') {
+        setResumenAbierto(false);
+        toggleRef.current?.focus();
+      }
+    };
+
+    document.addEventListener('keydown', alPresionarTecla);
+    return () => document.removeEventListener('keydown', alPresionarTecla);
+  }, [resumenAbierto]);
+
+  useEffect(() => {
+    if (pedidoConfirmado) {
+      tituloExitoRef.current?.focus();
+    }
+  }, [pedidoConfirmado]);
+
+  const limpiarErrorPedido = () => {
+    setErrorPedido(null);
+    setPizzaNombreConError(null);
+  };
 
   const cambiarCantidad = (pizza: Pizza, cambio: number) => {
-    setPedidoConfirmado(null);
+    limpiarErrorPedido();
 
     setCarrito((anterior) => {
       const existente = anterior.find((item) => item.pizzaId === pizza.id);
@@ -123,23 +121,26 @@ export default function CrearPedidoForm() {
     });
   };
 
-  const totalEstimado = carrito.reduce(
-    (total, item) => total + item.precioUnitario * item.cantidad,
-    0
-  );
+  const quitarDelCarrito = (pizzaId: number) => {
+    limpiarErrorPedido();
+    setCarrito((anterior) => anterior.filter((item) => item.pizzaId !== pizzaId));
+  };
 
-   const confirmarPedido = async () => {
-    if (enviando) return;
-    setError(null);
+  const total = carrito.reduce((acc, item) => acc + item.precioUnitario * item.cantidad, 0);
+  const unidadesEnCarrito = carrito.reduce((acc, item) => acc + item.cantidad, 0);
+
+  const confirmarPedido = async () => {
+    if (enviando || carrito.length === 0) return;
+    limpiarErrorPedido();
 
     const resultado = crearPedidoSchema.safeParse({
       retiro,
-      clienteId: esAdmin ? (clienteId === '' ? undefined : clienteId) : usuario?.id,
+      clienteId: usuario?.id,
       items: carrito.map(({ pizzaId, cantidad }) => ({ pizzaId, cantidad })),
     });
 
     if (!resultado.success) {
-      setError(resultado.error.issues[0]?.message ?? 'Revisá los datos del pedido');
+      setErrorPedido(resultado.error.issues[0]?.message ?? 'Revisá los datos del pedido');
       return;
     }
 
@@ -148,198 +149,310 @@ export default function CrearPedidoForm() {
       const nuevo = await crearPedido(resultado.data);
       setPedidoConfirmado(nuevo);
       setCarrito([]);
-      setClienteId('');
       setRetiro(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo registrar el pedido.');
+      const mensaje = err instanceof Error ? err.message : 'No se pudo registrar el pedido.';
+      setErrorPedido(mensaje);
+      const coincidencia = mensaje.match(/"([^"]+)"/);
+      setPizzaNombreConError(coincidencia ? coincidencia[1] : null);
     } finally {
       setEnviando(false);
     }
   };
 
-  if (cargando) return <p>Cargando pizzas...</p>;
-
-  return (
-    <div className="ingredientes-container pedido-nuevo">
-      <header className="pedido-encabezado">
-        <span className="pedido-etiqueta">
-          DUE PAFFUTELLI · NUEVO PEDIDO
-        </span>
-        <h2>Elegí tus pizzas</h2>
-        <p>Sumá las pizzas que quieras con los botones de cada tarjeta.</p>
-      </header>
-
-      {error && (
-        <div className="error-message" role="alert">
-          ⚠️ {error}
-        </div>
-      )}
-
-      {pedidoConfirmado && (
-        <div className="crear-ingrediente-form" role="status">
-          <h3>✅ Pedido #{pedidoConfirmado.id} registrado</h3>
-          <p>
-            Total: <strong>${pedidoConfirmado.total}</strong> — Estado:{' '}
-            {pedidoConfirmado.estado}
-          </p>
-        </div>
-      )}
-
-      <div className="crear-ingrediente-form pedido-datos">
-        <h3>Datos del pedido</h3>
-
-        <div className="form">
-          {esAdmin ? (
-            <div className="form-group">
-              <label htmlFor="cliente-pedido">Cliente:</label>
-              <select
-                id="cliente-pedido"
-                value={clienteId}
-                onChange={(e) =>
-                  setClienteId(
-                    e.target.value === '' ? '' : Number(e.target.value)
-                  )
-                }
-                className="form-input"
-              >
-                <option value="">Seleccioná un cliente</option>
-                {clientes.map((cliente) => (
-                  <option key={cliente.id} value={cliente.id}>
-                    {cliente.nombre} {cliente.apellido}
-                  </option>
-                ))}
-              </select>
+  if (pedidoConfirmado) {
+    return (
+      <div className="pedido-nuevo">
+        <main className="pagina pagina--simple">
+          <section className="exito" aria-labelledby="exito-titulo">
+            <div className="exito__sello" aria-hidden="true">
+              <IconoCheck />
             </div>
-          ) : (
-            <div className="form-group">
-              <label>Cliente:</label>
-              <p style={{ margin: 0, fontWeight: 600 }}>
-                {usuario?.nombre} {usuario?.apellido}
+            <p className="eyebrow">Pedido recibido</p>
+            <h1 className="titulo-pagina" id="exito-titulo" tabIndex={-1} ref={tituloExitoRef}>
+              ¡Listo! Ya tenemos tu pedido
+            </h1>
+            <p className="bajada">Podés seguir su estado desde Mis pedidos.</p>
+
+            <div className="recibo">
+              <dl className="recibo__datos">
+                <div>
+                  <dt>Estado</dt>
+                  <dd>
+                    <span className="tag tag--pendiente">{pedidoConfirmado.estado}</span>
+                  </dd>
+                </div>
+                <div>
+                  <dt>Modalidad</dt>
+                  <dd>{pedidoConfirmado.retiro ? 'Retiro en el local' : 'Envío a domicilio'}</dd>
+                </div>
+              </dl>
+
+              {!pedidoConfirmado.retiro && (
+                <p className="modalidad__nota">
+                  Lo enviamos al domicilio registrado en tu cuenta.
+                </p>
+              )}
+
+              <ul className="lineas">
+                {pedidoConfirmado.detalles.map((detalle) => (
+                  <li className="linea linea--fija" key={detalle.pizza.id}>
+                    <span className="linea__cantidad">
+                      <span className="sr-only">Cantidad: </span>
+                      {detalle.cantidad}
+                    </span>
+                    <span className="linea__info">
+                      <span className="linea__nombre">{detalle.pizza.nombre}</span>
+                      <span className="linea__unitario">{formatearPrecio(detalle.pizza.precio)} c/u</span>
+                    </span>
+                    <span className="linea__subtotal">
+                      {formatearPrecio(detalle.pizza.precio * detalle.cantidad)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+
+              <p className="resumen__total">
+                <span>Total</span>
+                <span className="resumen__total-valor">{formatearPrecio(pedidoConfirmado.total)}</span>
               </p>
             </div>
-          )}
 
-          <div className="form-group-small">
-            <label>
-              <input
-                type="checkbox"
-                checked={retiro}
-                onChange={(e) => setRetiro(e.target.checked)}
-              />{' '}
-              Retiro en el local
-            </label>
-          </div>
-        </div>
+            <Link className="btn btn--primario btn--bloque" to="/mis-pedidos">
+              Ir a Mis pedidos
+            </Link>
+          </section>
+        </main>
       </div>
+    );
+  }
 
-      <h3 className="pedido-carta-titulo">Nuestra carta</h3>
-
-      {pizzas.length === 0 ? (
-        <p>No hay pizzas disponibles.</p>
-      ) : (
-        <div className="pedido-pizzas-grid">
-          {pizzas.map((pizza) => {
-            const cantidad =
-              carrito.find((item) => item.pizzaId === pizza.id)?.cantidad ?? 0;
-            const foto = obtenerFotoPizza(pizza.id);
-
-            return (
-              <article className="pedido-pizza-card" key={pizza.id}>
-                <div className="pedido-pizza-imagen">
-                  {foto ? (
-                    <img src={foto} alt={`Pizza ${pizza.nombre}`} />
-                  ) : (
-                    <div
-                      className="pedido-pizza-sin-foto"
-                      aria-label="Foto pendiente"
-                    >
-                      🍕
-                      <span>Foto de la pizza</span>
-                    </div>
-                  )}
-                </div>
-
-                <div className="pedido-pizza-contenido">
-                  <div className="pedido-pizza-info">
-                    <h4>{pizza.nombre}</h4>
-                    <strong>${Number(pizza.precio).toFixed(2)}</strong>
-                  </div>
-
-                  <p className="pedido-pizza-ingredientes">
-                    {ingredientes[pizza.id]
-                      ? `Ingredientes: ${ingredientes[pizza.id]}`
-                      : esAdmin
-                        ? 'Ingredientes no cargados o no disponibles'
-                        : 'Consultá los ingredientes en el local'}
-                  </p>
-
-                  <div
-                    className="pedido-pizza-controles"
-                    aria-label={`Cantidad de ${pizza.nombre}`}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => cambiarCantidad(pizza, -1)}
-                      disabled={cantidad === 0 || enviando}
-                      aria-label={`Quitar una ${pizza.nombre}`}
-                    >
-                      −
-                    </button>
-
-                    <output aria-live="polite">{cantidad}</output>
-
-                    <button
-                      type="button"
-                      onClick={() => cambiarCantidad(pizza, 1)}
-                      disabled={cantidad >= 100 || enviando}
-                      aria-label={`Agregar una ${pizza.nombre}`}
-                    >
-                      +
-                    </button>
-                  </div>
-                </div>
-              </article>
-            );
-          })}
+  return (
+    <div className="pedido-nuevo">
+      <main className={`pagina${errorPedido ? ' pagina--con-alerta' : ''}`}>
+        <div className="encabezado">
+          <p className="eyebrow">Nuevo pedido</p>
+          <h1 className="titulo-pagina">Armá tu pedido</h1>
+          <p className="bajada">Elegí las pizzas y la cantidad de cada una. Confirmás al final.</p>
         </div>
-      )}
 
-      <div className="crear-ingrediente-form pedido-resumen">
-        <div>
-          <h3>Tu pedido</h3>
+        <div className="pedido">
+          <section className="carta" aria-labelledby="carta-titulo">
+            <div className="carta__cabecera">
+              <h2 className="titulo-seccion" id="carta-titulo">
+                Nuestra carta
+              </h2>
+              {!cargando && pizzas.length > 0 && (
+                <p className="carta__cuenta">
+                  {pizzas.length} {pizzas.length === 1 ? 'pizza' : 'pizzas'}
+                </p>
+              )}
+            </div>
 
-          {carrito.length === 0 ? (
-            <p>Todavía no elegiste pizzas.</p>
-          ) : (
-            <ul>
-              {carrito.map((item) => (
-                <li key={item.pizzaId}>
-                  <span>
-                    {item.cantidad} × {item.nombrePizza}
+            {errorCarga && <AlertaError titulo="No pudimos cargar la carta" mensaje={errorCarga} />}
+
+            {cargando ? (
+              <>
+                <p className="sr-only" role="status">
+                  Cargando la carta…
+                </p>
+                <ul className="carta__lista" aria-busy="true" aria-hidden="true">
+                  {Array.from({ length: 4 }).map((_, indice) => (
+                    <li key={indice}>
+                      <div className="pizza-card pizza-card--cargando">
+                        <div className="pizza-card__media"></div>
+                        <div className="pizza-card__cuerpo">
+                          <span className="esqueleto esqueleto--titulo"></span>
+                          <span className="esqueleto esqueleto--tag"></span>
+                          <div className="pizza-card__pie">
+                            <span className="esqueleto esqueleto--precio"></span>
+                            <span className="esqueleto esqueleto--boton"></span>
+                          </div>
+                        </div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            ) : pizzas.length === 0 ? (
+              !errorCarga && (
+                <div className="vacio">
+                  <p className="vacio__titulo">Por ahora no hay pizzas en la carta</p>
+                  <p>Volvé a pasar en un rato para hacer tu pedido.</p>
+                </div>
+              )
+            ) : (
+              <ul className="carta__lista">
+                {pizzas.map((pizza) => {
+                  const cantidad = carrito.find((item) => item.pizzaId === pizza.id)?.cantidad ?? 0;
+
+                  return (
+                    <li key={pizza.id}>
+                      <article
+                        className={`pizza-card${cantidad > 0 ? ' pizza-card--en-pedido' : ''}${
+                          !pizza.disponible ? ' pizza-card--no-disponible' : ''
+                        }`}
+                      >
+                        <div className="pizza-card__media" aria-hidden="true">
+                          <span className="pizza-card__inicial">{pizza.nombre.charAt(0).toUpperCase()}</span>
+                        </div>
+                        <div className="pizza-card__cuerpo">
+                          <h3 className="pizza-card__nombre">{pizza.nombre}</h3>
+
+                          {(pizza.vegetariana || !pizza.disponible) && (
+                            <p className="pizza-card__tags">
+                              {!pizza.disponible && <span className="tag tag--no-disponible">No disponible</span>}
+                              {pizza.vegetariana && (
+                                <span className="tag tag--vegetariana">
+                                  <IconoHoja />
+                                  Vegetariana
+                                </span>
+                              )}
+                            </p>
+                          )}
+
+                          <div className="pizza-card__pie">
+                            <p className="pizza-card__precio">{formatearPrecio(pizza.precio)}</p>
+                            <ControlCantidad
+                              cantidad={cantidad}
+                              nombre={pizza.nombre}
+                              onCambiar={(delta) => cambiarCantidad(pizza, delta)}
+                              deshabilitado={!pizza.disponible || enviando}
+                            />
+                          </div>
+                        </div>
+                      </article>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </section>
+
+          <aside className={`resumen${resumenAbierto ? ' is-open' : ''}`} aria-labelledby="resumen-titulo">
+            <div className="resumen__panel">
+              <button
+                type="button"
+                className="resumen__toggle"
+                aria-expanded={resumenAbierto}
+                aria-controls="resumen-detalle"
+                onClick={() => setResumenAbierto((abierto) => !abierto)}
+                ref={toggleRef}
+              >
+                <span className="resumen__toggle-texto">
+                  <span className="resumen__toggle-titulo">
+                    {carrito.length === 0
+                      ? 'Tu pedido está vacío'
+                      : `Tu pedido · ${unidadesEnCarrito} ${unidadesEnCarrito === 1 ? 'pizza' : 'pizzas'}`}
                   </span>
-                  <strong>
-                    ${(item.precioUnitario * item.cantidad).toFixed(2)}
-                  </strong>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+                  <span className="resumen__toggle-detalle">
+                    {retiro ? 'Retiro en el local' : 'Envío a domicilio'}
+                  </span>
+                </span>
+                <span className="resumen__toggle-accion">
+                  Detalle
+                  <IconoChevronArriba className="icono resumen__chevron" />
+                </span>
+              </button>
 
-        <div className="pedido-resumen-total">
-          <strong>Total estimado: ${totalEstimado.toFixed(2)}</strong>
-          <div className="form-actions">
-            <button
-              type="button"
-              className="btn-submit"
-              onClick={() => void confirmarPedido()}
-              disabled={enviando || carrito.length === 0}
-            >
-              {enviando ? 'Confirmando...' : 'Confirmar Pedido'}
-            </button>
-          </div>
+              {errorPedido && (
+                <AlertaError className="resumen__alerta" mensaje={errorPedido} />
+              )}
+
+              <div className="resumen__detalle" id="resumen-detalle">
+                <h2 className="titulo-seccion resumen__titulo" id="resumen-titulo">
+                  Tu pedido
+                </h2>
+
+                {carrito.length === 0 ? (
+                  <p className="resumen__vacio">
+                    <strong>Todavía no elegiste nada</strong>
+                    Sumá pizzas desde la carta y las vas a ver acá.
+                  </p>
+                ) : (
+                  <ul className="lineas">
+                    {carrito.map((item) => {
+                      const tieneError =
+                        !!pizzaNombreConError &&
+                        item.nombrePizza.toLowerCase() === pizzaNombreConError.toLowerCase();
+
+                      return (
+                        <li className={`linea${tieneError ? ' linea--error' : ''}`} key={item.pizzaId}>
+                          <span className="linea__cantidad">
+                            <span className="sr-only">Cantidad: </span>
+                            {item.cantidad}
+                          </span>
+                          <span className="linea__info">
+                            <span className="linea__nombre">{item.nombrePizza}</span>
+                            <span className="linea__unitario">
+                              {tieneError ? 'No disponible' : `${formatearPrecio(item.precioUnitario)} c/u`}
+                            </span>
+                          </span>
+                          <span className="linea__subtotal">
+                            {formatearPrecio(item.precioUnitario * item.cantidad)}
+                          </span>
+                          <button
+                            type="button"
+                            className="btn-icono"
+                            aria-label={`Quitar ${item.nombrePizza} del pedido`}
+                            onClick={() => quitarDelCarrito(item.pizzaId)}
+                            disabled={enviando}
+                          >
+                            <IconoX />
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+
+                <SelectorSegmentado<Modalidad>
+                  nombre="modalidad"
+                  leyenda="¿Cómo lo recibís?"
+                  opciones={[
+                    { valor: 'retiro', etiqueta: 'Retiro en el local' },
+                    {
+                      valor: 'envio',
+                      etiqueta: 'Envío a domicilio',
+                      describedBy: !retiro ? NOTA_ENVIO_ID : undefined,
+                    },
+                  ]}
+                  valorSeleccionado={retiro ? 'retiro' : 'envio'}
+                  onCambiar={(valor) => setRetiro(valor === 'retiro')}
+                  deshabilitado={enviando}
+                >
+                  {!retiro && (
+                    <p className="modalidad__nota" id={NOTA_ENVIO_ID}>
+                      Lo enviamos al domicilio registrado en tu cuenta.
+                    </p>
+                  )}
+                </SelectorSegmentado>
+
+                <p className="resumen__total">
+                  <span>Total</span>
+                  <span className="resumen__total-valor">{formatearPrecio(total)}</span>
+                </p>
+              </div>
+
+              <div className="resumen__accion">
+                <button
+                  type="button"
+                  className={`btn btn--primario btn--bloque${enviando ? ' btn--cargando' : ''}`}
+                  disabled={enviando || carrito.length === 0}
+                  aria-busy={enviando}
+                  onClick={() => void confirmarPedido()}
+                >
+                  {enviando && <span className="spinner" aria-hidden="true"></span>}
+                  {enviando ? 'Enviando' : 'Confirmar pedido'}
+                  {!enviando && carrito.length > 0 && (
+                    <span className="btn__total">{formatearPrecio(total)}</span>
+                  )}
+                </button>
+              </div>
+            </div>
+          </aside>
         </div>
-      </div>
+      </main>
     </div>
   );
 }
