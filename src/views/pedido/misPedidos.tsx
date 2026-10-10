@@ -2,7 +2,7 @@ import { Fragment, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { Pedido } from '../../interfaces/pedido';
 import { getPedidos } from '../../services/pedidoService';
-import { formatearPrecio } from '../../utils/formato';
+import { calcularTotalPedido, formatearPrecio } from '../../utils/formato';
 import AlertaError from '../../components/AlertaError';
 import { IconoFlechaDerecha } from '../../components/iconos';
 import { ESTADOS_FILTRO, claseEstado, formatearFechaPedido } from './estadoPedido';
@@ -170,7 +170,8 @@ export default function MisPedidos() {
                           </span>
                           <span className="pedido-card__total">
                             <span className="sr-only">Total </span>
-                            {formatearPrecio(pedido.total)}
+                            {formatearPrecio(calcularTotalPedido(pedido))}
+                            {!pedido.retiro && !pedido.envio && <span className="sr-only"> sin costo de envío</span>}
                           </span>
                           <IconoFlechaDerecha className="icono pedido-card__flecha" />
                         </Link>

@@ -6,6 +6,7 @@ import type { Repartidor } from '../../interfaces/repartidor';
 import { actualizarEstadoPedido, asignarEnvio, getPedidoById } from '../../services/pedidoService';
 import { getRepartidores } from '../../services/repartidorService';
 import { asignarEnvioSchema } from '../../schemas/pedido.schema';
+import { calcularTotalPedido, formatearPrecio, obtenerPropinaPedido } from '../../utils/formato';
 
 export default function PedidoDetalle() {
   const { id } = useParams<{ id: string }>();
@@ -55,9 +56,10 @@ export default function PedidoDetalle() {
     return () => { activo = false; };
   }, [pedidoId]);
 
-  const cambiarEstado = async (estado: 'En preparación' | 'Cancelado') => {
+  const cambiarEstado = async (estado: 'En preparación' | 'Cancelado' | 'Entregado') => {
     if (!pedido || guardando) return;
     if (estado === 'Cancelado' && !window.confirm('¿Cancelar este pedido? Se repondrá su stock.')) return;
+    if (estado === 'Entregado' && !window.confirm('¿Confirmás que este pedido ya fue entregado al cliente?')) return;
 
     try {
       setGuardando(true);
@@ -120,7 +122,12 @@ export default function PedidoDetalle() {
         </p>
         <p><strong>Entrega:</strong> {pedido.retiro ? 'Retiro en el local' : 'Envío a domicilio'}</p>
         <p><strong>Estado:</strong> {pedido.estado}</p>
-        <p><strong>Total:</strong> ${pedido.total.toFixed(2)}</p>
+        <p><strong>Pizzas:</strong> {formatearPrecio(pedido.total)}</p>
+        {!pedido.retiro && <p><strong>Propina:</strong> {formatearPrecio(obtenerPropinaPedido(pedido))}</p>}
+        <p>
+          <strong>{!pedido.retiro && !pedido.envio ? 'Total sin envío:' : 'Total:'}</strong>{' '}
+          {formatearPrecio(calcularTotalPedido(pedido))}
+        </p>
 
         {pedido.estado === 'Pendiente' && (
           <button
@@ -130,6 +137,18 @@ export default function PedidoDetalle() {
             onClick={() => void cambiarEstado('En preparación')}
           >
             Confirmar pedido
+          </button>
+        )}
+
+        {((pedido.retiro && pedido.estado === 'En preparación') ||
+          (!pedido.retiro && pedido.estado === 'En camino' && pedido.envio && pedido.repartidor)) && (
+          <button
+            type="button"
+            className="btn-submit"
+            disabled={guardando}
+            onClick={() => void cambiarEstado('Entregado')}
+          >
+            {guardando ? 'Guardando...' : 'Marcar como entregado'}
           </button>
         )}
 

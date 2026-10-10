@@ -6,7 +6,7 @@ import { getPizzas, obtenerUrlImagenPizza } from '../../services/pizzaService';
 import { crearPedido } from '../../services/pedidoService';
 import { useAuth } from '../../context/authContext';
 import { crearPedidoSchema } from '../../schemas/pedido.schema';
-import { formatearPrecio } from '../../utils/formato';
+import { calcularTotalPedido, formatearPrecio, obtenerPropinaPedido } from '../../utils/formato';
 import ControlCantidad from '../../components/ControlCantidad';
 import AlertaError from '../../components/AlertaError';
 import SelectorSegmentado from '../../components/SelectorSegmentado';
@@ -30,6 +30,7 @@ export default function CrearPedidoForm() {
   const [errorCarga, setErrorCarga] = useState<string | null>(null);
 
   const [retiro, setRetiro] = useState(false);
+  const [propina, setPropina] = useState('0');
   const [carrito, setCarrito] = useState<ItemCarrito[]>([]);
   const [resumenAbierto, setResumenAbierto] = useState(false);
 
@@ -127,6 +128,9 @@ export default function CrearPedidoForm() {
   };
 
   const total = carrito.reduce((acc, item) => acc + item.precioUnitario * item.cantidad, 0);
+  const propinaNumero = propina.trim() === '' ? 0 : Number(propina);
+  const propinaResumen = !retiro && Number.isFinite(propinaNumero) && propinaNumero >= 0 ? propinaNumero : 0;
+  const totalConPropina = total + propinaResumen;
   const unidadesEnCarrito = carrito.reduce((acc, item) => acc + item.cantidad, 0);
 
   const confirmarPedido = async () => {
@@ -135,6 +139,7 @@ export default function CrearPedidoForm() {
 
     const resultado = crearPedidoSchema.safeParse({
       retiro,
+      monto_propina: retiro ? 0 : propinaNumero,
       clienteId: usuario?.id,
       items: carrito.map(({ pizzaId, cantidad }) => ({ pizzaId, cantidad })),
     });
@@ -150,6 +155,7 @@ export default function CrearPedidoForm() {
       setPedidoConfirmado(nuevo);
       setCarrito([]);
       setRetiro(false);
+      setPropina('0');
     } catch (err) {
       const mensaje = err instanceof Error ? err.message : 'No se pudo registrar el pedido.';
       setErrorPedido(mensaje);
@@ -212,9 +218,16 @@ export default function CrearPedidoForm() {
                 ))}
               </ul>
 
+              {!pedidoConfirmado.retiro && (
+                <>
+                  <p>Pizzas: {formatearPrecio(pedidoConfirmado.total)}</p>
+                  <p>Propina: {formatearPrecio(obtenerPropinaPedido(pedidoConfirmado))}</p>
+                  <p className="modalidad__nota">El costo del envío se confirma más adelante.</p>
+                </>
+              )}
               <p className="resumen__total">
-                <span>Total</span>
-                <span className="resumen__total-valor">{formatearPrecio(pedidoConfirmado.total)}</span>
+                <span>{pedidoConfirmado.retiro ? 'Total' : 'Total sin envío'}</span>
+                <span className="resumen__total-valor">{formatearPrecio(calcularTotalPedido(pedidoConfirmado))}</span>
               </p>
             </div>
 
@@ -422,7 +435,11 @@ export default function CrearPedidoForm() {
                     },
                   ]}
                   valorSeleccionado={retiro ? 'retiro' : 'envio'}
-                  onCambiar={(valor) => setRetiro(valor === 'retiro')}
+                  onCambiar={(valor) => {
+                    setRetiro(valor === 'retiro');
+                    if (valor === 'retiro') setPropina('0');
+                    limpiarErrorPedido();
+                  }}
                   deshabilitado={enviando}
                 >
                   {!retiro && (
@@ -432,9 +449,35 @@ export default function CrearPedidoForm() {
                   )}
                 </SelectorSegmentado>
 
+                {!retiro && (
+                  <div className="form-group">
+                    <label htmlFor="propina-pedido">Propina para el repartidor (opcional)</label>
+                    <input
+                      id="propina-pedido"
+                      className="form-input"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      inputMode="decimal"
+                      value={propina}
+                      onChange={(e) => {
+                        setPropina(e.target.value);
+                        limpiarErrorPedido();
+                      }}
+                      disabled={enviando}
+                      aria-describedby="propina-nota"
+                    />
+                    <p className="modalidad__nota" id="propina-nota">
+                      Podés dejarla en $0. El costo del envío se confirma más adelante.
+                    </p>
+                    <p>Pizzas: {formatearPrecio(total)}</p>
+                    <p>Propina: {formatearPrecio(propinaResumen)}</p>
+                  </div>
+                )}
+
                 <p className="resumen__total">
-                  <span>Total</span>
-                  <span className="resumen__total-valor">{formatearPrecio(total)}</span>
+                  <span>{retiro ? 'Total' : 'Total sin envío'}</span>
+                  <span className="resumen__total-valor">{formatearPrecio(totalConPropina)}</span>
                 </p>
               </div>
 
@@ -449,7 +492,7 @@ export default function CrearPedidoForm() {
                   {enviando && <span className="spinner" aria-hidden="true"></span>}
                   {enviando ? 'Enviando' : 'Confirmar pedido'}
                   {!enviando && carrito.length > 0 && (
-                    <span className="btn__total">{formatearPrecio(total)}</span>
+                    <span className="btn__total">{formatearPrecio(totalConPropina)}</span>
                   )}
                 </button>
               </div>

@@ -53,7 +53,10 @@ export async function actualizarEstadoPedido(id: number, estado: string): Promis
     headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
     body: JSON.stringify({ estado }),
   });
-  if (!response.ok) throw new Error(`Error al actualizar el estado del pedido ${id}: ${response.status}`);
+  if (!response.ok) {
+    const body = await response.json().catch(() => null);
+    throw new Error(body?.message || `Error al actualizar el estado del pedido ${id}: ${response.status}`);
+  }
   const body: ApiResponse<Pedido> = await response.json();
   return body.data;
 }

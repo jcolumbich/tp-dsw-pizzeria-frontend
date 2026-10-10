@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import type { Pedido } from '../../interfaces/pedido';
 import { getPedidoById } from '../../services/pedidoService';
-import { formatearPrecio } from '../../utils/formato';
+import { calcularTotalPedido, formatearPrecio, obtenerPropinaPedido } from '../../utils/formato';
 import AlertaError from '../../components/AlertaError';
 import { IconoCancelado, IconoCheck, IconoVolver } from '../../components/iconos';
 import { claseEstado, formatearFechaPedido, notaSeguimiento, pasosSeguimiento } from './estadoPedido';
@@ -209,9 +209,20 @@ export default function MiPedidoDetalle() {
                 </li>
               ))}
             </ul>
+            {!pedido.retiro && (
+              <>
+                <p>Pizzas: {formatearPrecio(pedido.total)}</p>
+                <p>Propina: {formatearPrecio(obtenerPropinaPedido(pedido))}</p>
+                {pedido.envio ? (
+                  <p>Envío: {formatearPrecio(pedido.envio.costo)}</p>
+                ) : (
+                  <p className="panel__nota">El costo del envío se confirma más adelante.</p>
+                )}
+              </>
+            )}
             <p className="resumen__total">
-              <span>Total</span>
-              <span className="resumen__total-valor">{formatearPrecio(pedido.total)}</span>
+              <span>{!pedido.retiro && !pedido.envio ? 'Total sin envío' : 'Total'}</span>
+              <span className="resumen__total-valor">{formatearPrecio(calcularTotalPedido(pedido))}</span>
             </p>
           </section>
         </div>

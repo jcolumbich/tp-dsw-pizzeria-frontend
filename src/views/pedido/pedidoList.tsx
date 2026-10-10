@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import type { Pedido } from '../../interfaces/pedido';
 import { ESTADOS_PEDIDO } from '../../interfaces/pedido';
 import { getPedidos } from '../../services/pedidoService';
+import { calcularTotalPedido } from '../../utils/formato';
 
 export default function PedidoList() {
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
@@ -135,7 +136,7 @@ export default function PedidoList() {
 
                       <td>{calcularTotalItems(pedido)}</td>
 
-                      <td>${pedido.total.toFixed(2)}</td>
+                      <td>${calcularTotalPedido(pedido).toFixed(2)}</td>
 
                       <td>
                         <span className={`badge-estado estado-${pedido.estado.toLowerCase().replaceAll(' ', '-')}`}>
