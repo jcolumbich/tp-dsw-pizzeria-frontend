@@ -1,8 +1,19 @@
 import { useEffect, useState } from 'react';
 import type { Cliente } from '../../interfaces/cliente';
-import { getClientes, eliminarCliente, actualizarCliente } from '../../services/clienteService';
+import {
+  getClientes,
+  eliminarCliente,
+  actualizarCliente,
+} from '../../services/clienteService';
 import { editarClienteSchema } from '../../schemas/cliente.schema';
 import CrearClienteForm from './crearClienteForm';
+
+const normalizarBusqueda = (texto: string) =>
+  texto
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLocaleLowerCase('es')
+    .trim();
 
 export default function ClienteList() {
   const [clientes, setClientes] = useState<Cliente[]>([]);
@@ -26,7 +37,11 @@ export default function ClienteList() {
       setClientes(await getClientes());
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudieron obtener los clientes.');
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'No se pudieron obtener los clientes.',
+      );
     } finally {
       setCargando(false);
     }
@@ -34,34 +49,52 @@ export default function ClienteList() {
 
   const handleEliminar = async (id: number) => {
     if (guardando) return;
-    if (!window.confirm('¿Estás seguro de que querés eliminar este cliente?')) return;
+
+    if (
+      !window.confirm(
+        '¿Estás seguro de que querés eliminar este cliente?',
+      )
+    ) {
+      return;
+    }
+
     setError(null);
 
     try {
       setGuardando(true);
       await eliminarCliente(id);
       setClientes((prev) => prev.filter((item) => item.id !== id));
-      if (editandoId === id) setEditandoId(null);
+
+      if (editandoId === id) {
+        setEditandoId(null);
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al intentar eliminar el cliente.');
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Error al intentar eliminar el cliente.',
+      );
     } finally {
       setGuardando(false);
     }
   };
 
-  const handleIniciarEdicion = (c: Cliente) => {
-    setEditandoId(c.id);
-    setNombreEditado(c.nombre);
-    setApellidoEditado(c.apellido);
-    setDomicilioEditado(c.domicilio);
-    setEstadoEditado(c.estado);
+  const handleIniciarEdicion = (cliente: Cliente) => {
+    setEditandoId(cliente.id);
+    setNombreEditado(cliente.nombre);
+    setApellidoEditado(cliente.apellido);
+    setDomicilioEditado(cliente.domicilio);
+    setEstadoEditado(cliente.estado);
     setError(null);
   };
 
-  const handleCancelarEdicion = () => setEditandoId(null);
+  const handleCancelarEdicion = () => {
+    setEditandoId(null);
+  };
 
   const handleGuardarCambios = async (id: number) => {
     if (guardando) return;
+
     setError(null);
 
     const resultado = editarClienteSchema.safeParse({
@@ -72,17 +105,29 @@ export default function ClienteList() {
     });
 
     if (!resultado.success) {
-      setError(resultado.error.issues[0]?.message ?? 'Revisá los datos del cliente');
+      setError(
+        resultado.error.issues[0]?.message ??
+          'Revisá los datos del cliente',
+      );
       return;
     }
 
     try {
       setGuardando(true);
+
       const actualizado = await actualizarCliente(id, resultado.data);
-      setClientes((prev) => prev.map((item) => item.id === id ? actualizado : item));
+
+      setClientes((prev) =>
+        prev.map((item) => (item.id === id ? actualizado : item)),
+      );
+
       setEditandoId(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo actualizar el cliente.');
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'No se pudo actualizar el cliente.',
+      );
     } finally {
       setGuardando(false);
     }
@@ -92,32 +137,58 @@ export default function ClienteList() {
     setClientes((prev) => [...prev, nuevo]);
   };
 
-  const clientesFiltrados = clientes.filter(
-    (c) => `${c.nombre} ${c.apellido}`.toLowerCase().includes(filtro.toLowerCase())
-  );
+  const palabrasBusqueda = normalizarBusqueda(filtro)
+    .split(/\s+/)
+    .filter(Boolean);
 
-  if (cargando) return <p>Cargando clientes...</p>;
+  const clientesFiltrados = clientes.filter((cliente) => {
+    const datos = normalizarBusqueda(
+      `${cliente.nombre} ${cliente.apellido} ${cliente.email ?? ''} ${cliente.domicilio ?? ''}`,
+    );
+
+    return palabrasBusqueda.every((palabra) => datos.includes(palabra));
+  });
+
+  if (cargando) {
+    return <p>Cargando clientes...</p>;
+  }
 
   return (
     <div className="ingredientes-container">
       <h2>🧑‍🤝‍🧑 Gestión de Clientes</h2>
-      <CrearClienteForm onClienteCreado={handleClienteCreado} />
-      {error && <div className="error-message" role="alert"> {error}</div>}
 
       <div className="form-group filtro-container">
-        <label htmlFor="filtro-clientes"> Buscar por nombre o apellido:</label>
+        <label htmlFor="filtro-clientes">Buscar clientes</label>
+
         <input
           id="filtro-clientes"
-          type="text"
-          placeholder="Ej. Pérez"
+          type="search"
+          placeholder="Nombre, apellido, correo o domicilio"
           value={filtro}
           onChange={(e) => setFiltro(e.target.value)}
           className="form-input"
+          aria-describedby="resultado-busqueda-clientes"
         />
+
+        <span id="resultado-busqueda-clientes" role="status">
+          {clientesFiltrados.length} de {clientes.length} clientes
+        </span>
       </div>
 
+      <CrearClienteForm onClienteCreado={handleClienteCreado} />
+
+      {error && (
+        <div className="error-message" role="alert">
+          {error}
+        </div>
+      )}
+
       {clientesFiltrados.length === 0 && !error ? (
-        <p>{clientes.length === 0 ? 'No hay clientes registrados.' : 'No se encontraron clientes.'}</p>
+        <p>
+          {clientes.length === 0
+            ? 'No hay clientes registrados.'
+            : 'No se encontraron clientes.'}
+        </p>
       ) : (
         <table className="ingredientes-table">
           <thead>
@@ -129,11 +200,12 @@ export default function ClienteList() {
               <th>Acciones</th>
             </tr>
           </thead>
+
           <tbody>
-            {clientesFiltrados.map((c) => (
-              <tr key={c.id}>
+            {clientesFiltrados.map((cliente) => (
+              <tr key={cliente.id}>
                 <td>
-                  {editandoId === c.id ? (
+                  {editandoId === cliente.id ? (
                     <input
                       type="text"
                       value={nombreEditado}
@@ -143,10 +215,13 @@ export default function ClienteList() {
                       disabled={guardando}
                       autoFocus
                     />
-                  ) : c.nombre}
+                  ) : (
+                    cliente.nombre
+                  )}
                 </td>
+
                 <td>
-                  {editandoId === c.id ? (
+                  {editandoId === cliente.id ? (
                     <input
                       type="text"
                       value={apellidoEditado}
@@ -155,10 +230,13 @@ export default function ClienteList() {
                       aria-label="Apellido del cliente"
                       disabled={guardando}
                     />
-                  ) : c.apellido}
+                  ) : (
+                    cliente.apellido
+                  )}
                 </td>
+
                 <td>
-                  {editandoId === c.id ? (
+                  {editandoId === cliente.id ? (
                     <input
                       type="text"
                       value={domicilioEditado}
@@ -167,13 +245,18 @@ export default function ClienteList() {
                       aria-label="Domicilio del cliente"
                       disabled={guardando}
                     />
-                  ) : c.domicilio}
+                  ) : (
+                    cliente.domicilio
+                  )}
                 </td>
+
                 <td>
-                  {editandoId === c.id ? (
+                  {editandoId === cliente.id ? (
                     <select
                       value={estadoEditado ? 'true' : 'false'}
-                      onChange={(e) => setEstadoEditado(e.target.value === 'true')}
+                      onChange={(e) =>
+                        setEstadoEditado(e.target.value === 'true')
+                      }
                       className="form-input"
                       aria-label="Estado del cliente"
                       disabled={guardando}
@@ -181,20 +264,51 @@ export default function ClienteList() {
                       <option value="true">Habilitado</option>
                       <option value="false">Suspendido</option>
                     </select>
-                  ) : c.estado ? 'Habilitado' : 'Suspendido'}
+                  ) : cliente.estado ? (
+                    'Habilitado'
+                  ) : (
+                    'Suspendido'
+                  )}
                 </td>
+
                 <td>
-                  {editandoId === c.id ? (
+                  {editandoId === cliente.id ? (
                     <>
-                      <button type="button" className="btn-submit" disabled={guardando} onClick={() => void handleGuardarCambios(c.id)}>
+                      <button
+                        type="button"
+                        className="btn-submit"
+                        disabled={guardando}
+                        onClick={() =>
+                          void handleGuardarCambios(cliente.id)
+                        }
+                      >
                         {guardando ? 'Guardando...' : 'Guardar'}
                       </button>
-                      <button type="button" disabled={guardando} onClick={handleCancelarEdicion}>Cancelar</button>
+
+                      <button
+                        type="button"
+                        disabled={guardando}
+                        onClick={handleCancelarEdicion}
+                      >
+                        Cancelar
+                      </button>
                     </>
                   ) : (
                     <>
-                      <button type="button" disabled={guardando} onClick={() => handleIniciarEdicion(c)}>Editar</button>
-                      <button type="button" disabled={guardando} onClick={() => void handleEliminar(c.id)} className="btn-eliminar">
+                      <button
+                        type="button"
+                        disabled={guardando}
+                        onClick={() => handleIniciarEdicion(cliente)}
+                      >
+                        Editar
+                      </button>
+
+                      <button
+                        type="button"
+                        disabled={guardando}
+                        onClick={() => void handleEliminar(cliente.id)}
+                        className="btn-eliminar"
+                      >
                         Eliminar
                       </button>
                     </>

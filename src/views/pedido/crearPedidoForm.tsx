@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { Pizza } from '../../interfaces/pizza';
 import type { ItemPedido, Pedido } from '../../interfaces/pedido';
-import { getPizzas } from '../../services/pizzaService';
+import { getPizzas, obtenerUrlImagenPizza } from '../../services/pizzaService';
 import { crearPedido } from '../../services/pedidoService';
 import { useAuth } from '../../context/authContext';
 import { crearPedidoSchema } from '../../schemas/pedido.schema';
@@ -294,7 +294,11 @@ export default function CrearPedidoForm() {
                         }`}
                       >
                         <div className="pizza-card__media" aria-hidden="true">
-                          <span className="pizza-card__inicial">{pizza.nombre.charAt(0).toUpperCase()}</span>
+                          {pizza.imagen ? (
+                            <img src={obtenerUrlImagenPizza(pizza)!} alt="" loading="lazy" className="pizza-imagen-pedido" />
+                          ) : (
+                            <span className="pizza-card__inicial">{pizza.nombre.charAt(0).toUpperCase()}</span>
+                          )}
                         </div>
                         <div className="pizza-card__cuerpo">
                           <h3 className="pizza-card__nombre">{pizza.nombre}</h3>

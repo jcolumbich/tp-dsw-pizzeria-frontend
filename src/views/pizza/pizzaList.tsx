@@ -1,7 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { Pizza } from '../../interfaces/pizza';
-import { getPizzas, eliminarPizza, actualizarPizza } from '../../services/pizzaService';
+import {
+  getPizzas,
+  eliminarPizza,
+  actualizarPizza,
+  obtenerUrlImagenPizza,
+} from '../../services/pizzaService';
 import { crearPizzaSchema } from '../../schemas/pizza.schema';
 import CrearPizzaForm from './crearPizzaForm';
 
@@ -16,36 +21,71 @@ export default function PizzaList() {
   const [precioEditado, setPrecioEditado] = useState('0');
   const [vegetarianaEditada, setVegetarianaEditada] = useState(false);
   const [disponibleEditada, setDisponibleEditada] = useState(true);
+  const [imagenEditada, setImagenEditada] = useState<File | null>(null);
+  const [vistaPrevia, setVistaPrevia] = useState('');
+
+  const imagenInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    void cargarPizzas();
+    let activo = true;
+
+    getPizzas()
+      .then((data) => {
+        if (activo) {
+          setPizzas(data);
+          setError(null);
+        }
+      })
+      .catch((err) => {
+        if (activo) {
+          setError(
+            err instanceof Error
+              ? err.message
+              : 'No se pudieron obtener las pizzas.'
+          );
+        }
+      })
+      .finally(() => {
+        if (activo) setCargando(false);
+      });
+
+    return () => {
+      activo = false;
+    };
   }, []);
 
-  const cargarPizzas = async () => {
-    try {
-      setCargando(true);
-      const data = await getPizzas();
-      setPizzas(data);
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudieron obtener las pizzas.');
-    } finally {
-      setCargando(false);
-    }
-  };
+  useEffect(() => {
+    return () => {
+      if (vistaPrevia) {
+        URL.revokeObjectURL(vistaPrevia);
+      }
+    };
+  }, [vistaPrevia]);
 
   const handleEliminar = async (id: number) => {
     if (guardando) return;
-    if (!window.confirm('¿Estás seguro de que querés eliminar esta pizza?')) return;
+
+    if (!window.confirm('¿Estás seguro de que querés eliminar esta pizza?')) {
+      return;
+    }
+
     setError(null);
 
     try {
       setGuardando(true);
       await eliminarPizza(id);
+
       setPizzas((prev) => prev.filter((item) => item.id !== id));
-      if (editandoId === id) setEditandoId(null);
+
+      if (editandoId === id) {
+        handleCancelarEdicion();
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al intentar eliminar la pizza.');
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Error al intentar eliminar la pizza.'
+      );
     } finally {
       setGuardando(false);
     }
@@ -57,15 +97,59 @@ export default function PizzaList() {
     setPrecioEditado(String(p.precio));
     setVegetarianaEditada(p.vegetariana);
     setDisponibleEditada(p.disponible);
+    setImagenEditada(null);
+    setVistaPrevia('');
     setError(null);
+
+    if (imagenInputRef.current) {
+      imagenInputRef.current.value = '';
+    }
   };
 
   const handleCancelarEdicion = () => {
     setEditandoId(null);
+    setImagenEditada(null);
+    setVistaPrevia('');
+  };
+
+  const handleSeleccionarImagen = (archivo: File | undefined) => {
+    setError(null);
+    setImagenEditada(null);
+    setVistaPrevia('');
+
+    if (!archivo) return;
+
+    if (
+      archivo.type !== 'image/jpeg' &&
+      archivo.type !== 'image/png' &&
+      archivo.type !== 'image/webp'
+    ) {
+      setError('Seleccioná una imagen JPG, PNG o WebP.');
+
+      if (imagenInputRef.current) {
+        imagenInputRef.current.value = '';
+      }
+
+      return;
+    }
+
+    if (archivo.size > 5 * 1024 * 1024) {
+      setError('La imagen no puede superar los 5 MB.');
+
+      if (imagenInputRef.current) {
+        imagenInputRef.current.value = '';
+      }
+
+      return;
+    }
+
+    setImagenEditada(archivo);
+    setVistaPrevia(URL.createObjectURL(archivo));
   };
 
   const handleGuardarCambios = async (id: number) => {
     if (guardando) return;
+
     setError(null);
 
     const resultado = crearPizzaSchema.safeParse({
@@ -76,17 +160,33 @@ export default function PizzaList() {
     });
 
     if (!resultado.success) {
-      setError(resultado.error.issues[0]?.message ?? 'Revisá los datos de la pizza');
+      setError(
+        resultado.error.issues[0]?.message ??
+        'Revisá los datos de la pizza'
+      );
       return;
     }
 
     try {
       setGuardando(true);
-      const actualizada = await actualizarPizza(id, resultado.data);
-      setPizzas((prev) => prev.map((item) => item.id === id ? actualizada : item));
-      setEditandoId(null);
+
+      const actualizada = await actualizarPizza(
+        id,
+        resultado.data,
+        imagenEditada ?? undefined
+      );
+
+      setPizzas((prev) =>
+        prev.map((item) => item.id === id ? actualizada : item)
+      );
+
+      handleCancelarEdicion();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo actualizar la pizza.');
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'No se pudo actualizar la pizza.'
+      );
     } finally {
       setGuardando(false);
     }
@@ -96,16 +196,23 @@ export default function PizzaList() {
     setPizzas((prev) => [...prev, nueva]);
   };
 
-  const pizzasFiltradas = pizzas.filter((p) => p.nombre.toLowerCase().includes(filtro.toLowerCase()));
+  const pizzasFiltradas = pizzas.filter((p) =>
+    p.nombre.toLowerCase().includes(filtro.toLowerCase())
+  );
 
   if (cargando) return <p>Cargando pizzas...</p>;
 
   return (
     <div className="ingredientes-container">
       <h2> Gestión de Pizzas</h2>
+
       <CrearPizzaForm onPizzaCreada={handlePizzaCreada} />
 
-      {error && <div className="error-message" role="alert">⚠️ {error}</div>}
+      {error && (
+        <div className="error-message" role="alert">
+          ⚠️ {error}
+        </div>
+      )}
 
       <div className="form-group filtro-container">
         <label htmlFor="filtro-pizzas">🔍 Buscar por nombre:</label>
@@ -120,11 +227,16 @@ export default function PizzaList() {
       </div>
 
       {pizzasFiltradas.length === 0 && !error ? (
-        <p>{pizzas.length === 0 ? 'No hay pizzas registradas.' : 'No se encontraron pizzas con ese nombre.'}</p>
+        <p>
+          {pizzas.length === 0
+            ? 'No hay pizzas registradas.'
+            : 'No se encontraron pizzas con ese nombre.'}
+        </p>
       ) : (
         <table className="ingredientes-table">
           <thead>
             <tr>
+              <th>Imagen</th>
               <th>Nombre</th>
               <th>Precio</th>
               <th>Vegetariana</th>
@@ -132,9 +244,57 @@ export default function PizzaList() {
               <th>Acciones</th>
             </tr>
           </thead>
+
           <tbody>
             {pizzasFiltradas.map((p) => (
               <tr key={p.id}>
+                <td>
+                  <div className="form-group">
+                    {(editandoId === p.id && vistaPrevia) || p.imagen ? (
+                      <img
+                        src={
+                          editandoId === p.id && vistaPrevia
+                            ? vistaPrevia
+                            : obtenerUrlImagenPizza(p)!
+                        }
+                        alt={p.nombre}
+                        width="100"
+                        height="75"
+                        style={{
+                          objectFit: 'cover',
+                          borderRadius: '6px',
+                        }}
+                      />
+                    ) : (
+                      <span>Sin imagen</span>
+                    )}
+
+                    {editandoId === p.id && (
+                      <>
+                        <label htmlFor={`pizza-imagen-${p.id}`}>
+                          Cambiar imagen (opcional)
+                        </label>
+
+                        <input
+                          ref={imagenInputRef}
+                          id={`pizza-imagen-${p.id}`}
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp"
+                          onChange={(e) =>
+                            handleSeleccionarImagen(e.target.files?.[0])
+                          }
+                          className="form-input"
+                          disabled={guardando}
+                        />
+
+                        <small>
+                          JPG, PNG o WebP. Hasta 5 MB y 20 megapíxeles.
+                        </small>
+                      </>
+                    )}
+                  </div>
+                </td>
+
                 <td>
                   {editandoId === p.id ? (
                     <input
@@ -148,6 +308,7 @@ export default function PizzaList() {
                     />
                   ) : p.nombre}
                 </td>
+
                 <td>
                   {editandoId === p.id ? (
                     <input
@@ -162,6 +323,7 @@ export default function PizzaList() {
                     />
                   ) : `$${p.precio}`}
                 </td>
+
                 <td>
                   {editandoId === p.id ? (
                     <input
@@ -173,6 +335,7 @@ export default function PizzaList() {
                     />
                   ) : p.vegetariana ? 'Sí' : 'No'}
                 </td>
+
                 <td>
                   {editandoId === p.id ? (
                     <input
@@ -184,6 +347,7 @@ export default function PizzaList() {
                     />
                   ) : p.disponible ? 'Sí' : 'No'}
                 </td>
+
                 <td>
                   {editandoId === p.id ? (
                     <>
@@ -195,18 +359,33 @@ export default function PizzaList() {
                       >
                         {guardando ? 'Guardando...' : 'Guardar'}
                       </button>
-                      <button type="button" disabled={guardando} onClick={handleCancelarEdicion}>
+
+                      <button
+                        type="button"
+                        disabled={guardando}
+                        onClick={handleCancelarEdicion}
+                      >
                         Cancelar
                       </button>
                     </>
                   ) : (
                     <>
-                      <Link to={`/pizzas/${p.id}`} className="nav-link" style={{ marginRight: '8px' }}>
+                      <Link
+                        to={`/pizzas/${p.id}`}
+                        className="nav-link"
+                        style={{ marginRight: '8px' }}
+                      >
                         Ingredientes
                       </Link>
-                      <button type="button" disabled={guardando} onClick={() => handleIniciarEdicion(p)}>
+
+                      <button
+                        type="button"
+                        disabled={guardando}
+                        onClick={() => handleIniciarEdicion(p)}
+                      >
                         Editar
                       </button>
+
                       <button
                         type="button"
                         className="btn-eliminar"

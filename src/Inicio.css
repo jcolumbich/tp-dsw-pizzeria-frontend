@@ -477,4 +477,46 @@
     width: auto;
     text-align: center;
   }
+  /* Fondo blanco para la presentación */
+.inicio {
+  background: var(--color-surface);
+}
+
+.inicio-presentacion {
+  background: var(--color-surface);
+}
+
+/* Fondo bordó para la carta */
+.inicio-carta {
+  background: var(--color-primary);
+  color: #fff8ed;
+}
+
+.inicio-carta h2 {
+  color: #fff8ed;
+}
+
+.inicio-carta .inicio-eyebrow {
+  color: #f2c86f;
+}
+
+.inicio-carta .inicio-seccion-encabezado .inicio-link {
+  color: #fff8ed;
+}
+
+.inicio-carta .inicio-seccion-encabezado .inicio-link:hover {
+  color: #f2c86f;
+}
+
+/* Tarjetas claras con texto oscuro */
+.inicio-pizza {
+  background: #fffdf9;
+  color: var(--color-text);
+}
+
+/* Mensajes de carga, error o carta vacía */
+.inicio-estado {
+  background: #fffdf9;
+  color: var(--color-text);
+}
 }

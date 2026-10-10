@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import type { Pizza } from '../../interfaces/pizza';
 import { crearPizza } from '../../services/pizzaService';
@@ -15,6 +15,34 @@ export default function CrearPizzaForm({ onPizzaCreada }: Props) {
   const [disponible, setDisponible] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [imagen, setImagen] = useState<File | null>(null);
+  const [vistaPrevia, setVistaPrevia] = useState('');
+  const imagenInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    return () => {
+      if (vistaPrevia) URL.revokeObjectURL(vistaPrevia);
+    };
+  }, [vistaPrevia]);
+
+  const handleSeleccionarImagen = (archivo: File | undefined) => {
+    setError(null);
+    setImagen(null);
+    setVistaPrevia('');
+    if (!archivo) return;
+    if (archivo.type !== 'image/jpeg' && archivo.type !== 'image/png' && archivo.type !== 'image/webp') {
+      setError('Seleccioná una imagen JPG, PNG o WebP.');
+      if (imagenInputRef.current) imagenInputRef.current.value = '';
+      return;
+    }
+    if (archivo.size > 5 * 1024 * 1024) {
+      setError('La imagen no puede superar los 5 MB.');
+      if (imagenInputRef.current) imagenInputRef.current.value = '';
+      return;
+    }
+    setImagen(archivo);
+    setVistaPrevia(URL.createObjectURL(archivo));
+  };
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -33,13 +61,21 @@ export default function CrearPizzaForm({ onPizzaCreada }: Props) {
       return;
     }
 
+    if (!imagen) {
+      setError('Seleccioná una imagen para la pizza.');
+      return;
+    }
+
     try {
       setSubmitting(true);
-      const pizzaCreada = await crearPizza(resultado.data);
+      const pizzaCreada = await crearPizza(resultado.data, imagen);
       setNombre('');
       setPrecio('0');
       setVegetariana(false);
       setDisponible(true);
+      setImagen(null);
+      setVistaPrevia('');
+      if (imagenInputRef.current) imagenInputRef.current.value = '';
       onPizzaCreada(pizzaCreada);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo guardar la pizza.');
@@ -105,6 +141,23 @@ export default function CrearPizzaForm({ onPizzaCreada }: Props) {
             />{' '}
             Disponible
           </label>
+        </div>
+
+        <div className="form-group pizza-imagen-campo">
+          <label htmlFor="pizza-imagen">Imagen de la pizza:</label>
+          <input
+            ref={imagenInputRef}
+            id="pizza-imagen"
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            onChange={(e) => handleSeleccionarImagen(e.target.files?.[0])}
+            disabled={submitting}
+            className="form-input"
+            aria-describedby="pizza-imagen-ayuda"
+            required
+          />
+          <small id="pizza-imagen-ayuda">JPG, PNG o WebP. Hasta 5 MB y 20 megapíxeles.</small>
+          {vistaPrevia && <img src={vistaPrevia} alt="Vista previa de la pizza" className="pizza-imagen-preview" />}
         </div>
 
         <div className="form-actions">

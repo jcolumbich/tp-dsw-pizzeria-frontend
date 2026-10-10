@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/authContext';
 import type { Pizza } from '../../interfaces/pizza';
-import { getPizzas } from '../../services/pizzaService';
+import { getPizzas, obtenerUrlImagenPizza } from '../../services/pizzaService';
 
 export default function Inicio() {
   const portadaRef = useRef<HTMLDivElement>(null);
@@ -10,7 +10,7 @@ export default function Inicio() {
   const { hash } = useLocation();
 
   const [pizzas, setPizzas] = useState<Pizza[]>([]);
-  const [cargando, setCargando] = useState(Boolean(usuario));
+  const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(false);
 
   const esAdmin = (usuario?.nivel_permisos ?? 0) >= 1;
@@ -44,7 +44,6 @@ export default function Inicio() {
   }, [pizzas]);
 
   useEffect(() => {
-    if (!usuario) return;
     let activo = true;
 
     getPizzas()
@@ -59,7 +58,7 @@ export default function Inicio() {
       });
 
     return () => { activo = false; };
-  }, [usuario]);
+  }, []);
 
   return (
     <div className="inicio" ref={portadaRef}>
@@ -122,14 +121,7 @@ export default function Inicio() {
           </Link>
         </div>
 
-        {!usuario ? (
-          <div className="inicio-carta-aviso">
-            <p>Iniciá sesión para ver las pizzas disponibles y sus precios.</p>
-            <Link className="inicio-boton inicio-boton-vino" to="/login">
-              Iniciar sesión <span aria-hidden="true">→</span>
-            </Link>
-          </div>
-        ) : cargando ? (
+        {cargando ? (
           <p className="inicio-estado">Cargando carta...</p>
         ) : error ? (
           <p className="inicio-estado" role="alert">
@@ -143,9 +135,13 @@ export default function Inicio() {
               <article className="inicio-pizza inicio-revelar" key={pizza.id}>
                 <div
                   className="inicio-imagen inicio-imagen-pizza"
-                  aria-label={`Espacio reservado para la foto de ${pizza.nombre}`}
+                  aria-label={pizza.imagen ? undefined : `Espacio reservado para la foto de ${pizza.nombre}`}
                 >
-                  <span>Foto de {pizza.nombre}</span>
+                  {pizza.imagen ? (
+                    <img src={obtenerUrlImagenPizza(pizza)!} alt={pizza.nombre} loading="lazy" className="pizza-imagen-carta" />
+                  ) : (
+                    <span>Foto de {pizza.nombre}</span>
+                  )}
                 </div>
 
                 <div className="inicio-pizza-detalle">
