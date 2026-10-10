@@ -7,14 +7,12 @@ import {
 } from '../../services/clienteService';
 import { editarClienteSchema } from '../../schemas/cliente.schema';
 import CrearClienteForm from './crearClienteForm';
-
 const normalizarBusqueda = (texto: string) =>
   texto
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .toLocaleLowerCase('es')
     .trim();
-
 export default function ClienteList() {
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -26,30 +24,20 @@ export default function ClienteList() {
   const [apellidoEditado, setApellidoEditado] = useState('');
   const [domicilioEditado, setDomicilioEditado] = useState('');
   const [estadoEditado, setEstadoEditado] = useState(true);
-
   useEffect(() => {
-    void cargarClientes();
+    let activo = true;
+    void getClientes()
+      .then((datos) => {
+        if (activo) { setClientes(datos); setError(null); }
+      })
+      .catch((error: unknown) => {
+        if (activo) setError(error instanceof Error ? error.message : 'No se pudieron obtener los clientes.');
+      })
+      .finally(() => { if (activo) setCargando(false); });
+    return () => { activo = false; };
   }, []);
-
-  const cargarClientes = async () => {
-    try {
-      setCargando(true);
-      setClientes(await getClientes());
-      setError(null);
-    } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : 'No se pudieron obtener los clientes.',
-      );
-    } finally {
-      setCargando(false);
-    }
-  };
-
   const handleEliminar = async (id: number) => {
     if (guardando) return;
-
     if (
       !window.confirm(
         '¿Estás seguro de que querés eliminar este cliente?',
@@ -57,14 +45,11 @@ export default function ClienteList() {
     ) {
       return;
     }
-
     setError(null);
-
     try {
       setGuardando(true);
       await eliminarCliente(id);
       setClientes((prev) => prev.filter((item) => item.id !== id));
-
       if (editandoId === id) {
         setEditandoId(null);
       }
@@ -78,7 +63,6 @@ export default function ClienteList() {
       setGuardando(false);
     }
   };
-
   const handleIniciarEdicion = (cliente: Cliente) => {
     setEditandoId(cliente.id);
     setNombreEditado(cliente.nombre);
@@ -87,23 +71,18 @@ export default function ClienteList() {
     setEstadoEditado(cliente.estado);
     setError(null);
   };
-
   const handleCancelarEdicion = () => {
     setEditandoId(null);
   };
-
   const handleGuardarCambios = async (id: number) => {
     if (guardando) return;
-
     setError(null);
-
     const resultado = editarClienteSchema.safeParse({
       nombre: nombreEditado,
       apellido: apellidoEditado,
       domicilio: domicilioEditado,
       estado: estadoEditado,
     });
-
     if (!resultado.success) {
       setError(
         resultado.error.issues[0]?.message ??
@@ -111,16 +90,12 @@ export default function ClienteList() {
       );
       return;
     }
-
     try {
       setGuardando(true);
-
       const actualizado = await actualizarCliente(id, resultado.data);
-
       setClientes((prev) =>
         prev.map((item) => (item.id === id ? actualizado : item)),
       );
-
       setEditandoId(null);
     } catch (err) {
       setError(
@@ -132,34 +107,26 @@ export default function ClienteList() {
       setGuardando(false);
     }
   };
-
   const handleClienteCreado = (nuevo: Cliente) => {
     setClientes((prev) => [...prev, nuevo]);
   };
-
   const palabrasBusqueda = normalizarBusqueda(filtro)
     .split(/\s+/)
     .filter(Boolean);
-
   const clientesFiltrados = clientes.filter((cliente) => {
     const datos = normalizarBusqueda(
       `${cliente.nombre} ${cliente.apellido} ${cliente.email ?? ''} ${cliente.domicilio ?? ''}`,
     );
-
     return palabrasBusqueda.every((palabra) => datos.includes(palabra));
   });
-
   if (cargando) {
     return <p>Cargando clientes...</p>;
   }
-
   return (
     <div className="ingredientes-container">
       <h2>🧑‍🤝‍🧑 Gestión de Clientes</h2>
-
       <div className="form-group filtro-container">
         <label htmlFor="filtro-clientes">Buscar clientes</label>
-
         <input
           id="filtro-clientes"
           type="search"
@@ -169,20 +136,16 @@ export default function ClienteList() {
           className="form-input"
           aria-describedby="resultado-busqueda-clientes"
         />
-
         <span id="resultado-busqueda-clientes" role="status">
           {clientesFiltrados.length} de {clientes.length} clientes
         </span>
       </div>
-
       <CrearClienteForm onClienteCreado={handleClienteCreado} />
-
       {error && (
         <div className="error-message" role="alert">
           {error}
         </div>
       )}
-
       {clientesFiltrados.length === 0 && !error ? (
         <p>
           {clientes.length === 0
@@ -200,7 +163,6 @@ export default function ClienteList() {
               <th>Acciones</th>
             </tr>
           </thead>
-
           <tbody>
             {clientesFiltrados.map((cliente) => (
               <tr key={cliente.id}>
@@ -219,7 +181,6 @@ export default function ClienteList() {
                     cliente.nombre
                   )}
                 </td>
-
                 <td>
                   {editandoId === cliente.id ? (
                     <input
@@ -234,7 +195,6 @@ export default function ClienteList() {
                     cliente.apellido
                   )}
                 </td>
-
                 <td>
                   {editandoId === cliente.id ? (
                     <input
@@ -249,7 +209,6 @@ export default function ClienteList() {
                     cliente.domicilio
                   )}
                 </td>
-
                 <td>
                   {editandoId === cliente.id ? (
                     <select
@@ -270,7 +229,6 @@ export default function ClienteList() {
                     'Suspendido'
                   )}
                 </td>
-
                 <td>
                   {editandoId === cliente.id ? (
                     <>
@@ -284,7 +242,6 @@ export default function ClienteList() {
                       >
                         {guardando ? 'Guardando...' : 'Guardar'}
                       </button>
-
                       <button
                         type="button"
                         disabled={guardando}
@@ -302,7 +259,6 @@ export default function ClienteList() {
                       >
                         Editar
                       </button>
-
                       <button
                         type="button"
                         disabled={guardando}

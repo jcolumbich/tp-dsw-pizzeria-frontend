@@ -1,10 +1,9 @@
 import { z } from 'zod';
-
+import { importeSchema } from './numero.schema';
 const idSchema = z.number().int().positive('Debe seleccionar un registro válido').max(Number.MAX_SAFE_INTEGER);
-
 export const crearPedidoSchema = z.object({
   retiro: z.boolean(),
-  monto_propina: z.number().min(0, 'La propina debe ser mayor o igual a 0').multipleOf(0.01, 'La propina admite hasta dos decimales').default(0),
+  monto_propina: importeSchema.default(0),
   clienteId: idSchema,
   items: z.array(z.object({
     pizzaId: idSchema,
@@ -17,8 +16,7 @@ export const crearPedidoSchema = z.object({
   message: 'La propina para el repartidor solo está disponible en pedidos con envío',
   path: ['monto_propina'],
 });
-
 export const asignarEnvioSchema = z.object({
   repartidorId: idSchema,
-  costo: z.number().min(0, 'El costo del envío debe ser mayor o igual a 0'),
+  costo: importeSchema,
 });

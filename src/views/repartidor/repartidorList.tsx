@@ -3,7 +3,6 @@ import type { Repartidor } from '../../interfaces/repartidor';
 import { getRepartidores, eliminarRepartidor, actualizarRepartidor } from '../../services/repartidorService';
 import { editarRepartidorSchema } from '../../schemas/repartidor.schema';
 import CrearRepartidorForm from './crearRepartidorForm';
-
 export default function RepartidorList() {
   const [repartidores, setRepartidores] = useState<Repartidor[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -15,27 +14,21 @@ export default function RepartidorList() {
   const [matriculaEditada, setMatriculaEditada] = useState('');
   const [estadoEditado, setEstadoEditado] = useState(true);
   const [confirmandoEliminarId, setConfirmandoEliminarId] = useState<number | null>(null);
-
   useEffect(() => {
-    void cargarRepartidores();
+    let activo = true;
+    void getRepartidores()
+      .then((datos) => {
+        if (activo) { setRepartidores(datos); setError(null); }
+      })
+      .catch((error: unknown) => {
+        if (activo) setError(error instanceof Error ? error.message : 'No se pudieron obtener los repartidores.');
+      })
+      .finally(() => { if (activo) setCargando(false); });
+    return () => { activo = false; };
   }, []);
-
-  const cargarRepartidores = async () => {
-    try {
-      setCargando(true);
-      setRepartidores(await getRepartidores());
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudieron obtener los repartidores.');
-    } finally {
-      setCargando(false);
-    }
-  };
-
   const handleConfirmarEliminar = async (id: number) => {
     if (guardando) return;
     setError(null);
-
     try {
       setGuardando(true);
       await eliminarRepartidor(id);
@@ -48,7 +41,6 @@ export default function RepartidorList() {
       setGuardando(false);
     }
   };
-
   const handleIniciarEdicion = (rep: Repartidor) => {
     setEditandoId(rep.id);
     setNombreEditado(rep.nombre);
@@ -58,23 +50,19 @@ export default function RepartidorList() {
     setConfirmandoEliminarId(null);
     setError(null);
   };
-
   const handleGuardarCambios = async (id: number) => {
     if (guardando) return;
     setError(null);
-
     const resultado = editarRepartidorSchema.safeParse({
       nombre: nombreEditado,
       apellido: apellidoEditado,
       matricula: matriculaEditada,
       estado: estadoEditado,
     });
-
     if (!resultado.success) {
       setError(resultado.error.issues[0]?.message ?? 'Revisá los datos del repartidor');
       return;
     }
-
     try {
       setGuardando(true);
       const actualizado = await actualizarRepartidor(id, resultado.data);
@@ -86,19 +74,15 @@ export default function RepartidorList() {
       setGuardando(false);
     }
   };
-
   const handleRepartidorCreado = (nuevo: Repartidor) => {
     setRepartidores((prev) => [...prev, nuevo]);
   };
-
   if (cargando) return <p>Cargando repartidores...</p>;
-
   return (
     <div className="ingredientes-container">
       <h2>Gestión de Repartidores</h2>
       <CrearRepartidorForm onRepartidorCreado={handleRepartidorCreado} />
       {error && <div className="error-message" role="alert"> {error}</div>}
-
       {repartidores.length === 0 && !error ? (
         <p>No hay repartidores registrados.</p>
       ) : (

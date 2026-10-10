@@ -1,10 +1,9 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { registrarCliente } from '../../services/authService';
-import { useAuth } from '../../context/authContext';
+import { useAuth } from '../../context/useAuth';
 import './LoginForm.css';
 import { registroSchema } from '../../schemas/auth.schema';
-
 function RegistroForm() {
   const navigate = useNavigate();
   const { login } = useAuth();
@@ -16,12 +15,10 @@ function RegistroForm() {
   const [domicilio, setDomicilio] = useState('');
   const [error, setError] = useState('');
   const [guardando, setGuardando] = useState(false);
-
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (guardando) return;
     setError('');
-
     const resultado = registroSchema.safeParse({
       nombre,
       apellido,
@@ -30,17 +27,13 @@ function RegistroForm() {
       confirmarContrasenia,
       domicilio,
     });
-
     if (!resultado.success) {
       setError(resultado.error.issues[0]?.message ?? 'Revisá los datos ingresados');
       return;
     }
-
     const datos = resultado.data;
-
     try {
       setGuardando(true);
-
       await registrarCliente({
         nombre: datos.nombre,
         apellido: datos.apellido,
@@ -48,7 +41,6 @@ function RegistroForm() {
         contrasenia: datos.contrasenia,
         domicilio: datos.domicilio,
       });
-
       await login(datos.email, datos.contrasenia);
       navigate('/pedidos/nuevo');
     } catch (error) {
@@ -57,7 +49,6 @@ function RegistroForm() {
       setGuardando(false);
     }
   }
-
   return (
     <div className="login-container">
       <div className="login-panel-bienvenida">
@@ -70,17 +61,13 @@ function RegistroForm() {
           🍕
         </div>
       </div>
-
       <div className="login-panel-formulario">
         <div className="login-formulario-contenedor">
           <h2>Crear cuenta</h2>
-
           <p className="login-link-registro">
             ¿Ya tenés una cuenta? <Link to="/login">Iniciar sesión</Link>
           </p>
-
           {error && <p className="form-error">⚠️ {error}</p>}
-
           <form onSubmit={handleSubmit} className="login-form">
             <div className="form-group">
               <label htmlFor="nombre">Nombre:</label>
@@ -94,7 +81,6 @@ function RegistroForm() {
                 required
               />
             </div>
-
             <div className="form-group">
               <label htmlFor="apellido">Apellido:</label>
               <input
@@ -107,7 +93,6 @@ function RegistroForm() {
                 required
               />
             </div>
-
             <div className="form-group">
               <label htmlFor="email">Email:</label>
               <input
@@ -120,7 +105,6 @@ function RegistroForm() {
                 required
               />
             </div>
-
             <div className="form-group">
               <label htmlFor="domicilio">Domicilio:</label>
               <input
@@ -133,7 +117,6 @@ function RegistroForm() {
                 required
               />
             </div>
-
             <div className="form-group">
               <label htmlFor="contrasenia">Contraseña:</label>
               <input
@@ -147,7 +130,6 @@ function RegistroForm() {
                 required
               />
             </div>
-
             <div className="form-group">
               <label htmlFor="confirmarContrasenia">Confirmar contraseña:</label>
               <input
@@ -161,7 +143,6 @@ function RegistroForm() {
                 required
               />
             </div>
-
             <div className="login-form-actions">
               <button
                 type="submit"
@@ -177,5 +158,4 @@ function RegistroForm() {
     </div>
   );
 }
-
 export default RegistroForm;

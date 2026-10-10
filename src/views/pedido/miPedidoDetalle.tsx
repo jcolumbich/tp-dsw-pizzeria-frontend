@@ -1,24 +1,20 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import type { Pedido } from '../../interfaces/pedido';
 import { getPedidoById } from '../../services/pedidoService';
-import { calcularTotalPedido, formatearPrecio, obtenerPropinaPedido } from '../../utils/formato';
+import { calcularTotalPedido, formatearPrecio, obtenerPropinaPedido, formatearPrecioHistorico, subtotalDetalle } from '../../utils/formato';
 import AlertaError from '../../components/AlertaError';
 import { IconoCancelado, IconoCheck, IconoVolver } from '../../components/iconos';
 import { claseEstado, formatearFechaPedido, notaSeguimiento, pasosSeguimiento } from './estadoPedido';
 import './crearPedidoForm.css';
 import './misPedidos.css';
-
 type EstadoCarga = 'cargando' | 'ok' | 'error' | 'no-encontrado';
-
 export default function MiPedidoDetalle() {
   const { id } = useParams<{ id: string }>();
   const pedidoId = Number(id);
-
   const [pedido, setPedido] = useState<Pedido | null>(null);
   const [estadoCarga, setEstadoCarga] = useState<EstadoCarga>('cargando');
-
-  const cargarPedido = async () => {
+  const cargarPedido = useCallback(async () => {
     try {
       setEstadoCarga('cargando');
       const data = await getPedidoById(pedidoId);
@@ -28,13 +24,11 @@ export default function MiPedidoDetalle() {
       const status = (err as { status?: number } | null)?.status;
       setEstadoCarga(status === 404 || status === 403 ? 'no-encontrado' : 'error');
     }
-  };
-
+  }, [pedidoId]);
   useEffect(() => {
     const temporizador = setTimeout(() => void cargarPedido(), 0);
     return () => clearTimeout(temporizador);
-  }, [pedidoId]);
-
+  }, [cargarPedido]);
   if (estadoCarga === 'cargando') {
     return (
       <div className="pedido-nuevo mis-pedidos">
@@ -68,7 +62,6 @@ export default function MiPedidoDetalle() {
       </div>
     );
   }
-
   if (estadoCarga === 'no-encontrado') {
     return (
       <div className="pedido-nuevo mis-pedidos">
@@ -90,7 +83,6 @@ export default function MiPedidoDetalle() {
       </div>
     );
   }
-
   if (estadoCarga === 'error' || !pedido) {
     return (
       <div className="pedido-nuevo mis-pedidos">
@@ -116,10 +108,8 @@ export default function MiPedidoDetalle() {
       </div>
     );
   }
-
   const pasos = pasosSeguimiento(pedido.retiro);
   const indiceActual = pasos.indexOf(pedido.estado);
-
   return (
     <div className="pedido-nuevo mis-pedidos">
       <main className="pagina pagina--simple">
@@ -127,7 +117,6 @@ export default function MiPedidoDetalle() {
           <IconoVolver />
           Mis pedidos
         </Link>
-
         <div className="encabezado">
           <div className="encabezado__fila">
             <h1 className="titulo-pagina">Pedido #{pedido.id}</h1>
@@ -143,13 +132,11 @@ export default function MiPedidoDetalle() {
             <li>{pedido.retiro ? 'Retiro en el local' : 'Envío a domicilio'}</li>
           </ul>
         </div>
-
         <div className="detalle">
           <section className="panel detalle__seguimiento" aria-labelledby="seguimiento-titulo">
             <h2 className="titulo-seccion panel__titulo" id="seguimiento-titulo">
               Seguimiento
             </h2>
-
             {pedido.estado === 'Cancelado' ? (
               <div className="estado-cancelado">
                 <IconoCancelado />
@@ -189,7 +176,6 @@ export default function MiPedidoDetalle() {
               </>
             )}
           </section>
-
           <section className="panel detalle__items" aria-labelledby="items-titulo">
             <h2 className="titulo-seccion panel__titulo" id="items-titulo">
               Pizzas
@@ -203,9 +189,9 @@ export default function MiPedidoDetalle() {
                   </span>
                   <span className="linea__info">
                     <span className="linea__nombre">{detalle.pizza.nombre}</span>
-                    <span className="linea__unitario">{formatearPrecio(detalle.pizza.precio)} c/u</span>
+                    <span className="linea__unitario">{formatearPrecioHistorico(detalle.precio_unitario)} c/u</span>
                   </span>
-                  <span className="linea__subtotal">{formatearPrecio(detalle.pizza.precio * detalle.cantidad)}</span>
+                  <span className="linea__subtotal">{formatearPrecioHistorico(subtotalDetalle(detalle))}</span>
                 </li>
               ))}
             </ul>

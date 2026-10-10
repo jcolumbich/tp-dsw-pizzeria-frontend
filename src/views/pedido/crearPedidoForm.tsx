@@ -4,47 +4,37 @@ import type { Pizza } from '../../interfaces/pizza';
 import type { ItemPedido, Pedido } from '../../interfaces/pedido';
 import { getPizzas, obtenerUrlImagenPizza } from '../../services/pizzaService';
 import { crearPedido } from '../../services/pedidoService';
-import { useAuth } from '../../context/authContext';
+import { useAuth } from '../../context/useAuth';
 import { crearPedidoSchema } from '../../schemas/pedido.schema';
-import { calcularTotalPedido, formatearPrecio, obtenerPropinaPedido } from '../../utils/formato';
+import { calcularTotalPedido, formatearPrecio, obtenerPropinaPedido, formatearPrecioHistorico, subtotalDetalle } from '../../utils/formato';
 import ControlCantidad from '../../components/ControlCantidad';
 import AlertaError from '../../components/AlertaError';
 import SelectorSegmentado from '../../components/SelectorSegmentado';
 import { IconoCheck, IconoChevronArriba, IconoHoja, IconoX } from '../../components/iconos';
 import './crearPedidoForm.css';
-
 interface ItemCarrito extends ItemPedido {
   nombrePizza: string;
   precioUnitario: number;
 }
-
 type Modalidad = 'retiro' | 'envio';
-
 const NOTA_ENVIO_ID = 'modalidad-nota';
-
 export default function CrearPedidoForm() {
   const { usuario } = useAuth();
-
   const [pizzas, setPizzas] = useState<Pizza[]>([]);
   const [cargando, setCargando] = useState(true);
   const [errorCarga, setErrorCarga] = useState<string | null>(null);
-
   const [retiro, setRetiro] = useState(false);
   const [propina, setPropina] = useState('0');
   const [carrito, setCarrito] = useState<ItemCarrito[]>([]);
   const [resumenAbierto, setResumenAbierto] = useState(false);
-
   const [enviando, setEnviando] = useState(false);
   const [errorPedido, setErrorPedido] = useState<string | null>(null);
   const [pizzaNombreConError, setPizzaNombreConError] = useState<string | null>(null);
   const [pedidoConfirmado, setPedidoConfirmado] = useState<Pedido | null>(null);
-
   const toggleRef = useRef<HTMLButtonElement>(null);
   const tituloExitoRef = useRef<HTMLHeadingElement>(null);
-
   useEffect(() => {
     let activo = true;
-
     const cargarPizzas = async () => {
       try {
         const pizzasData = await getPizzas();
@@ -58,58 +48,45 @@ export default function CrearPedidoForm() {
         if (activo) setCargando(false);
       }
     };
-
     void cargarPizzas();
-
     return () => {
       activo = false;
     };
   }, []);
-
   useEffect(() => {
     if (!resumenAbierto) return;
-
     const alPresionarTecla = (evento: KeyboardEvent) => {
       if (evento.key === 'Escape') {
         setResumenAbierto(false);
         toggleRef.current?.focus();
       }
     };
-
     document.addEventListener('keydown', alPresionarTecla);
     return () => document.removeEventListener('keydown', alPresionarTecla);
   }, [resumenAbierto]);
-
   useEffect(() => {
     if (pedidoConfirmado) {
       tituloExitoRef.current?.focus();
     }
   }, [pedidoConfirmado]);
-
   const limpiarErrorPedido = () => {
     setErrorPedido(null);
     setPizzaNombreConError(null);
   };
-
   const cambiarCantidad = (pizza: Pizza, cambio: number) => {
     limpiarErrorPedido();
-
     setCarrito((anterior) => {
       const existente = anterior.find((item) => item.pizzaId === pizza.id);
       const cantidad = (existente?.cantidad ?? 0) + cambio;
-
       if (cantidad <= 0) {
         return anterior.filter((item) => item.pizzaId !== pizza.id);
       }
-
       if (cantidad > 100) return anterior;
-
       if (existente) {
         return anterior.map((item) =>
           item.pizzaId === pizza.id ? { ...item, cantidad } : item
         );
       }
-
       return [
         ...anterior,
         {
@@ -121,34 +98,28 @@ export default function CrearPedidoForm() {
       ];
     });
   };
-
   const quitarDelCarrito = (pizzaId: number) => {
     limpiarErrorPedido();
     setCarrito((anterior) => anterior.filter((item) => item.pizzaId !== pizzaId));
   };
-
   const total = carrito.reduce((acc, item) => acc + item.precioUnitario * item.cantidad, 0);
   const propinaNumero = propina.trim() === '' ? 0 : Number(propina);
   const propinaResumen = !retiro && Number.isFinite(propinaNumero) && propinaNumero >= 0 ? propinaNumero : 0;
   const totalConPropina = total + propinaResumen;
   const unidadesEnCarrito = carrito.reduce((acc, item) => acc + item.cantidad, 0);
-
   const confirmarPedido = async () => {
     if (enviando || carrito.length === 0) return;
     limpiarErrorPedido();
-
     const resultado = crearPedidoSchema.safeParse({
       retiro,
       monto_propina: retiro ? 0 : propinaNumero,
       clienteId: usuario?.id,
       items: carrito.map(({ pizzaId, cantidad }) => ({ pizzaId, cantidad })),
     });
-
     if (!resultado.success) {
       setErrorPedido(resultado.error.issues[0]?.message ?? 'Revisá los datos del pedido');
       return;
     }
-
     try {
       setEnviando(true);
       const nuevo = await crearPedido(resultado.data);
@@ -165,7 +136,6 @@ export default function CrearPedidoForm() {
       setEnviando(false);
     }
   };
-
   if (pedidoConfirmado) {
     return (
       <div className="pedido-nuevo">
@@ -179,7 +149,6 @@ export default function CrearPedidoForm() {
               ¡Listo! Ya tenemos tu pedido
             </h1>
             <p className="bajada">Podés seguir su estado desde Mis pedidos.</p>
-
             <div className="recibo">
               <dl className="recibo__datos">
                 <div>
@@ -193,13 +162,11 @@ export default function CrearPedidoForm() {
                   <dd>{pedidoConfirmado.retiro ? 'Retiro en el local' : 'Envío a domicilio'}</dd>
                 </div>
               </dl>
-
               {!pedidoConfirmado.retiro && (
                 <p className="modalidad__nota">
                   Lo enviamos al domicilio registrado en tu cuenta.
                 </p>
               )}
-
               <ul className="lineas">
                 {pedidoConfirmado.detalles.map((detalle) => (
                   <li className="linea linea--fija" key={detalle.pizza.id}>
@@ -209,15 +176,14 @@ export default function CrearPedidoForm() {
                     </span>
                     <span className="linea__info">
                       <span className="linea__nombre">{detalle.pizza.nombre}</span>
-                      <span className="linea__unitario">{formatearPrecio(detalle.pizza.precio)} c/u</span>
+                      <span className="linea__unitario">{formatearPrecioHistorico(detalle.precio_unitario)} c/u</span>
                     </span>
                     <span className="linea__subtotal">
-                      {formatearPrecio(detalle.pizza.precio * detalle.cantidad)}
+                      {formatearPrecioHistorico(subtotalDetalle(detalle))}
                     </span>
                   </li>
                 ))}
               </ul>
-
               {!pedidoConfirmado.retiro && (
                 <>
                   <p>Pizzas: {formatearPrecio(pedidoConfirmado.total)}</p>
@@ -230,7 +196,6 @@ export default function CrearPedidoForm() {
                 <span className="resumen__total-valor">{formatearPrecio(calcularTotalPedido(pedidoConfirmado))}</span>
               </p>
             </div>
-
             <Link className="btn btn--primario btn--bloque" to="/mis-pedidos">
               Ir a Mis pedidos
             </Link>
@@ -239,7 +204,6 @@ export default function CrearPedidoForm() {
       </div>
     );
   }
-
   return (
     <div className="pedido-nuevo">
       <main className={`pagina${errorPedido ? ' pagina--con-alerta' : ''}`}>
@@ -248,7 +212,6 @@ export default function CrearPedidoForm() {
           <h1 className="titulo-pagina">Armá tu pedido</h1>
           <p className="bajada">Elegí las pizzas y la cantidad de cada una. Confirmás al final.</p>
         </div>
-
         <div className="pedido">
           <section className="carta" aria-labelledby="carta-titulo">
             <div className="carta__cabecera">
@@ -261,9 +224,7 @@ export default function CrearPedidoForm() {
                 </p>
               )}
             </div>
-
             {errorCarga && <AlertaError titulo="No pudimos cargar la carta" mensaje={errorCarga} />}
-
             {cargando ? (
               <>
                 <p className="sr-only" role="status">
@@ -298,7 +259,6 @@ export default function CrearPedidoForm() {
               <ul className="carta__lista">
                 {pizzas.map((pizza) => {
                   const cantidad = carrito.find((item) => item.pizzaId === pizza.id)?.cantidad ?? 0;
-
                   return (
                     <li key={pizza.id}>
                       <article
@@ -315,7 +275,6 @@ export default function CrearPedidoForm() {
                         </div>
                         <div className="pizza-card__cuerpo">
                           <h3 className="pizza-card__nombre">{pizza.nombre}</h3>
-
                           {(pizza.vegetariana || !pizza.disponible) && (
                             <p className="pizza-card__tags">
                               {!pizza.disponible && <span className="tag tag--no-disponible">No disponible</span>}
@@ -327,7 +286,6 @@ export default function CrearPedidoForm() {
                               )}
                             </p>
                           )}
-
                           <div className="pizza-card__pie">
                             <p className="pizza-card__precio">{formatearPrecio(pizza.precio)}</p>
                             <ControlCantidad
@@ -345,7 +303,6 @@ export default function CrearPedidoForm() {
               </ul>
             )}
           </section>
-
           <aside className={`resumen${resumenAbierto ? ' is-open' : ''}`} aria-labelledby="resumen-titulo">
             <div className="resumen__panel">
               <button
@@ -371,16 +328,13 @@ export default function CrearPedidoForm() {
                   <IconoChevronArriba className="icono resumen__chevron" />
                 </span>
               </button>
-
               {errorPedido && (
                 <AlertaError className="resumen__alerta" mensaje={errorPedido} />
               )}
-
               <div className="resumen__detalle" id="resumen-detalle">
                 <h2 className="titulo-seccion resumen__titulo" id="resumen-titulo">
                   Tu pedido
                 </h2>
-
                 {carrito.length === 0 ? (
                   <p className="resumen__vacio">
                     <strong>Todavía no elegiste nada</strong>
@@ -392,7 +346,6 @@ export default function CrearPedidoForm() {
                       const tieneError =
                         !!pizzaNombreConError &&
                         item.nombrePizza.toLowerCase() === pizzaNombreConError.toLowerCase();
-
                       return (
                         <li className={`linea${tieneError ? ' linea--error' : ''}`} key={item.pizzaId}>
                           <span className="linea__cantidad">
@@ -422,7 +375,6 @@ export default function CrearPedidoForm() {
                     })}
                   </ul>
                 )}
-
                 <SelectorSegmentado<Modalidad>
                   nombre="modalidad"
                   leyenda="¿Cómo lo recibís?"
@@ -448,7 +400,6 @@ export default function CrearPedidoForm() {
                     </p>
                   )}
                 </SelectorSegmentado>
-
                 {!retiro && (
                   <div className="form-group">
                     <label htmlFor="propina-pedido">Propina para el repartidor (opcional)</label>
@@ -474,13 +425,11 @@ export default function CrearPedidoForm() {
                     <p>Propina: {formatearPrecio(propinaResumen)}</p>
                   </div>
                 )}
-
                 <p className="resumen__total">
                   <span>{retiro ? 'Total' : 'Total sin envío'}</span>
                   <span className="resumen__total-valor">{formatearPrecio(totalConPropina)}</span>
                 </p>
               </div>
-
               <div className="resumen__accion">
                 <button
                   type="button"

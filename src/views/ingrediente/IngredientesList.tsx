@@ -3,7 +3,6 @@ import type { Ingrediente } from '../../interfaces/ingrediente';
 import { getIngredientes, eliminarIngrediente, actualizarIngrediente } from '../../services/ingredienteService';
 import { crearIngredienteSchema } from '../../schemas/ingrediente.schema';
 import CrearIngredienteForm from './crearIngredienteForm';
-
 export default function IngredientesList() {
   const [ingredientes, setIngredientes] = useState<Ingrediente[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -13,36 +12,27 @@ export default function IngredientesList() {
   const [nombreEditado, setNombreEditado] = useState('');
   const [stockEditado, setStockEditado] = useState('0');
   const [confirmandoEliminarId, setConfirmandoEliminarId] = useState<number | null>(null);
-
   useEffect(() => {
-    void cargarIngredientes();
+    let activo = true;
+    void getIngredientes()
+      .then((datos) => {
+        if (activo) { setIngredientes(datos); setError(null); }
+      })
+      .catch((error: unknown) => {
+        if (activo) setError(error instanceof Error ? error.message : 'No se pudieron obtener los ingredientes.');
+      })
+      .finally(() => { if (activo) setCargando(false); });
+    return () => { activo = false; };
   }, []);
-
-  const cargarIngredientes = async () => {
-    try {
-      setCargando(true);
-      const data = await getIngredientes();
-      setIngredientes(data);
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudieron obtener los ingredientes.');
-    } finally {
-      setCargando(false);
-    }
-  };
-
   const handleSolicitarEliminar = (id: number) => {
     setConfirmandoEliminarId(id);
   };
-
   const handleCancelarEliminar = () => {
     setConfirmandoEliminarId(null);
   };
-
   const handleConfirmarEliminar = async (id: number) => {
     if (guardando) return;
     setError(null);
-
     try {
       setGuardando(true);
       await eliminarIngrediente(id);
@@ -55,7 +45,6 @@ export default function IngredientesList() {
       setGuardando(false);
     }
   };
-
   const handleIniciarEdicion = (ing: Ingrediente) => {
     setEditandoId(ing.id);
     setNombreEditado(ing.nombre);
@@ -63,27 +52,22 @@ export default function IngredientesList() {
     setConfirmandoEliminarId(null);
     setError(null);
   };
-
   const handleCancelarEdicion = () => {
     setEditandoId(null);
     setNombreEditado('');
     setStockEditado('0');
   };
-
   const handleGuardarCambios = async (id: number) => {
     if (guardando) return;
     setError(null);
-
     const resultado = crearIngredienteSchema.safeParse({
       nombre: nombreEditado,
       stock: stockEditado.trim() === '' ? undefined : Number(stockEditado),
     });
-
     if (!resultado.success) {
       setError(resultado.error.issues[0]?.message ?? 'Revisá los datos del ingrediente');
       return;
     }
-
     try {
       setGuardando(true);
       const actualizado = await actualizarIngrediente(id, resultado.data);
@@ -95,20 +79,15 @@ export default function IngredientesList() {
       setGuardando(false);
     }
   };
-
   const handleIngredienteCreado = (nuevo: Ingrediente) => {
     setIngredientes((prev) => [...prev, nuevo]);
   };
-
   if (cargando) return <p>Cargando ingredientes...</p>;
-
   return (
     <div className="ingredientes-container">
       <h2> Gestión de Stock de Ingredientes</h2>
       <CrearIngredienteForm onIngredienteCreado={handleIngredienteCreado} />
-
       {error && <div className="error-message" role="alert">⚠️ {error}</div>}
-
       {ingredientes.length === 0 && !error ? (
         <p>No hay ingredientes registrados.</p>
       ) : (

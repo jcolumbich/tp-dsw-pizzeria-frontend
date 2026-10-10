@@ -1,21 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { useAuth } from '../../context/authContext';
+import { useAuth } from '../../context/useAuth';
 import type { Pizza } from '../../interfaces/pizza';
 import { getPizzas, obtenerUrlImagenPizza } from '../../services/pizzaService';
-
 export default function Inicio() {
   const portadaRef = useRef<HTMLDivElement>(null);
   const { usuario } = useAuth();
   const { hash } = useLocation();
-
   const [pizzas, setPizzas] = useState<Pizza[]>([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(false);
-
   const esAdmin = (usuario?.nivel_permisos ?? 0) >= 1;
   const destinoPedido = !usuario ? '/login' : esAdmin ? '/pedidos' : '/pedidos/nuevo';
-
   useEffect(() => {
     if (hash !== '#carta') return;
     const frame = requestAnimationFrame(() => {
@@ -23,11 +19,9 @@ export default function Inicio() {
     });
     return () => cancelAnimationFrame(frame);
   }, [hash]);
-
   useEffect(() => {
     const portada = portadaRef.current;
     if (!portada || !('IntersectionObserver' in window)) return;
-
     const elementos = portada.querySelectorAll<HTMLElement>('.inicio-revelar');
     const observador = new IntersectionObserver((entradas) => {
       entradas.forEach((entrada) => {
@@ -37,15 +31,12 @@ export default function Inicio() {
         }
       });
     }, { threshold: 0.12 });
-
     elementos.forEach((elemento) => observador.observe(elemento));
     portada.classList.add('inicio-con-animaciones');
     return () => observador.disconnect();
   }, [pizzas]);
-
   useEffect(() => {
     let activo = true;
-
     getPizzas()
       .then((lista) => {
         if (activo) setPizzas(lista.filter((pizza) => pizza.disponible));
@@ -56,10 +47,8 @@ export default function Inicio() {
       .finally(() => {
         if (activo) setCargando(false);
       });
-
     return () => { activo = false; };
   }, []);
-
   return (
     <div className="inicio" ref={portadaRef}>
       <section className="inicio-hero" aria-labelledby="inicio-titulo">
@@ -69,7 +58,6 @@ export default function Inicio() {
           <p className="inicio-intro">
             Elegí tu favorita, armá tu pedido y disfrutá de Due Paffutelli.
           </p>
-
           <div className="inicio-acciones">
             <a className="inicio-boton inicio-boton-vino" href="#carta">
               Ver la carta <span aria-hidden="true">↗</span>
@@ -79,7 +67,6 @@ export default function Inicio() {
             </Link>
           </div>
         </div>
-
         <div
           className="inicio-imagen inicio-imagen-hero"
           aria-label="Espacio reservado para la foto principal"
@@ -87,18 +74,15 @@ export default function Inicio() {
           <span>Tu foto principal va acá</span>
           <small>Imagen horizontal · pizza o local</small>
         </div>
-
         <span className="inicio-hero-numero" aria-hidden="true">
           01 / DUE PAFFUTELLI
         </span>
       </section>
-
       <section className="inicio-presentacion inicio-revelar" id="nosotros">
         <div className="inicio-presentacion-titulo">
           <p className="inicio-eyebrow">BIENVENIDOS</p>
           <h2>Una pizza siempre es un buen plan.</h2>
         </div>
-
         <div className="inicio-presentacion-texto">
           <p>
             En Due Paffutelli, cada pedido empieza con una elección simple:
@@ -109,7 +93,6 @@ export default function Inicio() {
           </a>
         </div>
       </section>
-
       <section className="inicio-carta" id="carta" aria-labelledby="carta-titulo">
         <div className="inicio-seccion-encabezado inicio-revelar">
           <div>
@@ -120,7 +103,6 @@ export default function Inicio() {
             Ir a pedidos <span aria-hidden="true">↗</span>
           </Link>
         </div>
-
         {cargando ? (
           <p className="inicio-estado">Cargando carta...</p>
         ) : error ? (
@@ -143,7 +125,6 @@ export default function Inicio() {
                     <span>Foto de {pizza.nombre}</span>
                   )}
                 </div>
-
                 <div className="inicio-pizza-detalle">
                   <span className="inicio-pizza-indice">
                     {String(index + 1).padStart(2, '0')}
@@ -151,7 +132,6 @@ export default function Inicio() {
                   <h3>{pizza.nombre}</h3>
                   {pizza.vegetariana && <span className="inicio-etiqueta">Vegetariana</span>}
                   <p>${Number(pizza.precio).toLocaleString('es-AR')}</p>
-
                   <Link
                     to={destinoPedido}
                     aria-label={esAdmin ? `Ver pedidos de ${pizza.nombre}` : `Pedir ${pizza.nombre}`}
@@ -165,7 +145,6 @@ export default function Inicio() {
           </div>
         )}
       </section>
-
       <section className="inicio-invitacion inicio-revelar">
         <div
           className="inicio-imagen inicio-imagen-invitacion"
@@ -174,16 +153,13 @@ export default function Inicio() {
           <span>Tu segunda foto va acá</span>
           <small>Imagen del local o de una pizza</small>
         </div>
-
         <div className="inicio-invitacion-copy">
           <p className="inicio-eyebrow">¿YA ELEGISTE?</p>
           <h2>Tu próxima pizza te espera.</h2>
           <p>Hacé tu pedido en unos pasos y consultá su estado desde tu cuenta.</p>
-
           <Link className="inicio-boton inicio-boton-claro" to={destinoPedido}>
             {esAdmin ? 'Ver pedidos' : 'Hacer un pedido'} <span aria-hidden="true">→</span>
           </Link>
-
           {usuario?.nivel_permisos === 0 && (
             <Link className="inicio-link inicio-link-claro" to="/mis-pedidos">
               Ver mis pedidos ↗
@@ -191,7 +167,6 @@ export default function Inicio() {
           )}
         </div>
       </section>
-
       <footer className="inicio-footer">
         <strong>Due Paffutelli</strong>
         <span>Hecho para disfrutar una buena pizza.</span>

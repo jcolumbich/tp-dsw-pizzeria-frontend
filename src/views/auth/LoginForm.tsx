@@ -1,33 +1,27 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../context/authContext';
+import { useAuth } from '../../context/useAuth';
 import { loginSchema } from '../../schemas/auth.schema';
 import './LoginForm.css';
-
 export default function LoginForm() {
   const [email, setEmail] = useState('');
   const [contrasenia, setContrasenia] = useState('');
   const [recordar, setRecordar] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-
   const { login } = useAuth();
   const navigate = useNavigate();
-
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (submitting) return;
     setError(null);
-
     const resultado = loginSchema.safeParse({ email, contrasenia });
     if (!resultado.success) {
       setError(resultado.error.issues[0]?.message ?? 'Revisá los datos ingresados');
       return;
     }
-
     const datos = resultado.data;
-
     try {
       setSubmitting(true);
       const usuario = await login(datos.email, datos.contrasenia, recordar);
@@ -38,7 +32,6 @@ export default function LoginForm() {
       setSubmitting(false);
     }
   };
-
   return (
     <div className="login-container">
       <div className="login-panel-bienvenida">
@@ -51,16 +44,13 @@ export default function LoginForm() {
           🍕
         </div>
       </div>
-
       <div className="login-panel-formulario">
         <div className="login-formulario-contenedor">
           <h2>🔐 Iniciar sesión</h2>
           <p className="login-link-registro">
             ¿Primera vez? <Link to="/registro">Creá tu cuenta</Link>
           </p>
-
           {error && <p className="form-error" role="alert">⚠️ {error}</p>}
-
           <form onSubmit={handleSubmit} className="login-form" noValidate>
             <div className="form-group">
               <label htmlFor="email">Email:</label>
@@ -75,7 +65,6 @@ export default function LoginForm() {
                 required
               />
             </div>
-
             <div className="form-group">
               <label htmlFor="contrasenia">Contraseña:</label>
               <input
@@ -89,7 +78,6 @@ export default function LoginForm() {
                 required
               />
             </div>
-
             <div className="form-group-small">
               <label>
                 <input
@@ -101,7 +89,6 @@ export default function LoginForm() {
                 Recordarme en este dispositivo
               </label>
             </div>
-
             <div className="login-form-actions">
               <button type="submit" disabled={submitting} className="btn-submit login-btn-submit">
                 {submitting ? 'Ingresando...' : 'Ingresar'}
