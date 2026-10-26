@@ -22,3 +22,7 @@ describe('importes históricos y decimales', () => {
     expect(stockSchema.safeParse(0.12345).success).toBe(false);
   });
 });
+it('incluye la tarifa de checkout antes de asignar el envío', () => {
+  const pedido: Pedido = { id: 1, dia: '2026-10-23', estado: 'Esperando pago', retiro: false, detalles: [], total: 1000, monto_propina: 100, costo_envio: 200 };
+  expect(calcularTotalPedido(pedido)).toBe(1300);
+});

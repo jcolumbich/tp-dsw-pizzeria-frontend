@@ -17,6 +17,7 @@ export interface OpcionEstado {
 }
 
 export const ESTADOS_FILTRO: OpcionEstado[] = [
+  { valor: 'Esperando pago', etiqueta: 'Esperando pago', clase: 'pendiente' },
   { valor: 'Pendiente', etiqueta: 'Pendiente', clase: 'pendiente' },
   { valor: 'En preparación', etiqueta: 'En preparación', clase: 'en-preparacion' },
   { valor: 'En camino', etiqueta: 'En camino', clase: 'en-camino' },
@@ -35,6 +36,7 @@ export function pasosSeguimiento(retiro: boolean): string[] {
 }
 
 export function notaSeguimiento(estado: string, retiro: boolean): string {
+  if (estado === 'Esperando pago') return 'Esperando la aprobación del pago. El pedido no está confirmado.';
   if (retiro) {
     if (estado === 'Pendiente') return 'Todavía no empezamos a prepararlo.';
     if (estado === 'En preparación') return 'Lo estamos preparando. Lo retirás en el local.';

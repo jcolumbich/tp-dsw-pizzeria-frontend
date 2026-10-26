@@ -60,7 +60,7 @@ export default function PedidoDetalle() {
             lista.filter((repartidor) => repartidor.estado),
           );
           setRepartidorId('');
-          setCosto('0');
+          setCosto(String(datos.costo_envio ?? datos.envio?.costo ?? 0));
         }
       } catch (err) {
         if (activo) {
@@ -197,6 +197,7 @@ export default function PedidoDetalle() {
       <PagoMercadoPago
         key={`${pedido.id}-${pedido.estado}`}
         pedidoId={pedido.id}
+        onEstadoPedido={(estado) => setPedido(actual => actual && actual.estado !== estado ? { ...actual, estado } : actual)}
       />
 
       {error && (
@@ -251,7 +252,7 @@ export default function PedidoDetalle() {
 
         <p>
           <strong>
-            {!pedido.retiro && !pedido.envio
+            {!pedido.retiro && pedido.costo_envio == null && !pedido.envio
               ? 'Total sin envío:'
               : 'Total:'}
           </strong>{' '}
@@ -267,7 +268,7 @@ export default function PedidoDetalle() {
               void cambiarEstado('En preparación')
             }
           >
-            Confirmar pedido
+            Pasar a preparación
           </button>
         )}
 
@@ -374,6 +375,7 @@ export default function PedidoDetalle() {
                   min="0"
                   step="0.01"
                   value={costo}
+                  readOnly={pedido.costo_envio != null}
                   onChange={(e) => setCosto(e.target.value)}
                   disabled={guardando}
                   required

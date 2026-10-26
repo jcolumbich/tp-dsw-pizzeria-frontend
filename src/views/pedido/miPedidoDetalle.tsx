@@ -240,6 +240,7 @@ export default function MiPedidoDetalle() {
         <PagoMercadoPago
           key={pedido.id}
           pedidoId={pedido.id}
+          onEstadoPedido={(estado) => setPedido(actual => actual && actual.estado !== estado ? { ...actual, estado } : actual)}
         />
 
         <div className="detalle">
@@ -254,7 +255,7 @@ export default function MiPedidoDetalle() {
               Seguimiento
             </h2>
 
-            {pedido.estado === 'Cancelado' ? (
+            {pedido.estado === 'Esperando pago' ? (<p>Esperando la aprobación del pago. Todavía no empezamos a preparar tu pedido.</p>) : pedido.estado === 'Cancelado' ? (
               <div className="estado-cancelado">
                 <IconoCancelado />
 
@@ -388,9 +389,9 @@ export default function MiPedidoDetalle() {
                   )}
                 </p>
 
-                {pedido.envio ? (
+                {pedido.costo_envio != null || pedido.envio ? (
                   <p>
-                    Envío: {formatearPrecio(pedido.envio.costo)}
+                    Envío: {formatearPrecio(pedido.costo_envio ?? pedido.envio?.costo ?? 0)}
                   </p>
                 ) : (
                   <p className="panel__nota">
@@ -402,7 +403,7 @@ export default function MiPedidoDetalle() {
 
             <p className="resumen__total">
               <span>
-                {!pedido.retiro && !pedido.envio
+                {!pedido.retiro && pedido.costo_envio == null && !pedido.envio
                   ? 'Total sin envío'
                   : 'Total'}
               </span>

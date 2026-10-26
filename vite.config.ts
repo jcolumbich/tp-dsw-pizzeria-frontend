@@ -1,7 +1,11 @@
 import { configDefaults, defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
+import { loadEnv } from 'vite';
 
-export default defineConfig({
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), '');
+  const host = env.FRONTEND_TUNNEL_URL ? new URL(env.FRONTEND_TUNNEL_URL).hostname : undefined;
+  return {
   plugins: [react()],
 
   test: {
@@ -14,9 +18,7 @@ export default defineConfig({
     port: 5173,
     strictPort: true,
 
-    allowedHosts: [
-      'learning-entrance-sheet-ment.trycloudflare.com',
-    ],
+    allowedHosts: host ? [host] : [],
 
     proxy: {
       '/api': {
@@ -29,4 +31,5 @@ export default defineConfig({
       },
     },
   },
+};
 });

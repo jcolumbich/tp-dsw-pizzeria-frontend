@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/useAuth';
 import { loginSchema } from '../../schemas/auth.schema';
 import './LoginForm.css';
@@ -12,6 +12,7 @@ export default function LoginForm() {
   const [submitting, setSubmitting] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (submitting) return;
@@ -25,7 +26,9 @@ export default function LoginForm() {
     try {
       setSubmitting(true);
       const usuario = await login(datos.email, datos.contrasenia, recordar);
-      navigate(usuario.nivel_permisos >= 1 ? '/' : '/pedidos/nuevo');
+      const volverA: unknown = location.state?.volverA;
+      navigate(typeof volverA === 'string' && /^\/mis-pedidos\/\d+(?:\?|$)/.test(volverA)
+        ? volverA : usuario.nivel_permisos >= 1 ? '/' : '/pedidos/nuevo');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo iniciar sesión.');
     } finally {

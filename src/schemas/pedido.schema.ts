@@ -3,6 +3,9 @@ import { importeSchema } from './numero.schema';
 const idSchema = z.number().int().positive('Debe seleccionar un registro válido').max(Number.MAX_SAFE_INTEGER);
 export const crearPedidoSchema = z.object({
   retiro: z.boolean(),
+  medio_pago: z.enum(['efectivo', 'mercadopago']).default('efectivo'),
+  checkout_id: z.uuid().optional(),
+  costo_envio: importeSchema.optional(),
   monto_propina: importeSchema.default(0),
   clienteId: idSchema,
   items: z.array(z.object({

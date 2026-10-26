@@ -171,7 +171,7 @@ export default function MisPedidos() {
                           <span className="pedido-card__total">
                             <span className="sr-only">Total </span>
                             {formatearPrecio(calcularTotalPedido(pedido))}
-                            {!pedido.retiro && !pedido.envio && <span className="sr-only"> sin costo de envío</span>}
+                            {!pedido.retiro && pedido.costo_envio == null && !pedido.envio && <span className="sr-only"> sin costo de envío</span>}
                           </span>
                           <IconoFlechaDerecha className="icono pedido-card__flecha" />
                         </Link>

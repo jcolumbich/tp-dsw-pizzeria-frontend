@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import type { Pizza } from '../../interfaces/pizza';
-import type { ItemPedido, Pedido } from '../../interfaces/pedido';
+import type { ItemPedido, Pedido, NuevoPedido } from '../../interfaces/pedido';
 import {
   getPizzas,
   obtenerUrlImagenPizza,
 } from '../../services/pizzaService';
-import { crearPedido } from '../../services/pedidoService';
+import { crearPedido, obtenerTarifaEnvio } from '../../services/pedidoService';
 import { useAuth } from '../../context/useAuth';
 import { crearPedidoSchema } from '../../schemas/pedido.schema';
 import {
@@ -35,10 +35,23 @@ interface ItemCarrito extends ItemPedido {
 
 type Modalidad = 'retiro' | 'envio';
 
-const NOTA_ENVIO_ID = 'modalidad-nota';
 
 export default function CrearPedidoForm() {
   const { usuario } = useAuth();
+  const navigate = useNavigate();
+  const [medioPago, setMedioPago] = useState<'efectivo' | 'mercadopago'>('efectivo');
+  const [costoEnvio, setCostoEnvio] = useState<number | null>(null);
+  const [errorTarifa, setErrorTarifa] = useState('');
+  const intento = useRef<NuevoPedido | null>(null);
+  const bloqueo = useRef(false);
+  const [compraIniciada, setCompraIniciada] = useState(false);
+
+  useEffect(() => {
+    let activo = true;
+    obtenerTarifaEnvio().then(costo => { if (activo) setCostoEnvio(costo); })
+      .catch((err: unknown) => { if (activo) setErrorTarifa(err instanceof Error ? err.message : 'No se pudo cargar la tarifa'); });
+    return () => { activo = false; };
+  }, []);
 
   const [pizzas, setPizzas] = useState<Pizza[]>([]);
   const [cargando, setCargando] = useState(true);
@@ -113,6 +126,7 @@ export default function CrearPedidoForm() {
   };
 
   const cambiarCantidad = (pizza: Pizza, cambio: number) => {
+    if (bloqueo.current || intento.current) return;
     limpiarErrorPedido();
 
     setCarrito((anterior) => {
@@ -149,6 +163,7 @@ export default function CrearPedidoForm() {
   };
 
   const quitarDelCarrito = (pizzaId: number) => {
+    if (bloqueo.current || intento.current) return;
     limpiarErrorPedido();
 
     setCarrito((anterior) =>
@@ -168,7 +183,7 @@ export default function CrearPedidoForm() {
       ? propinaNumero
       : 0;
 
-  const totalConPropina = total + propinaResumen;
+  const totalConPropina = total + propinaResumen + (retiro ? 0 : costoEnvio ?? 0);
 
   const unidadesEnCarrito = carrito.reduce(
     (acc, item) => acc + item.cantidad,
@@ -176,13 +191,16 @@ export default function CrearPedidoForm() {
   );
 
   const confirmarPedido = async () => {
-    if (enviando || carrito.length === 0) return;
+    if (bloqueo.current || carrito.length === 0 || (!retiro && costoEnvio === null)) return;
 
     limpiarErrorPedido();
 
-    const resultado = crearPedidoSchema.safeParse({
+    const resultado = crearPedidoSchema.safeParse(intento.current ?? {
       retiro,
       monto_propina: retiro ? 0 : propinaNumero,
+      medio_pago: medioPago,
+      checkout_id: crypto.randomUUID(),
+      costo_envio: retiro ? 0 : costoEnvio,
       clienteId: usuario?.id,
       items: carrito.map(({ pizzaId, cantidad }) => ({
         pizzaId,
@@ -199,10 +217,20 @@ export default function CrearPedidoForm() {
     }
 
     try {
+      bloqueo.current = true;
       setEnviando(true);
+      setCompraIniciada(true);
+      intento.current = resultado.data;
 
       const nuevo = await crearPedido(resultado.data);
 
+      if (nuevo.medio_pago === 'mercadopago') {
+        if (nuevo.checkoutUrl) window.location.assign(nuevo.checkoutUrl);
+        else navigate(`/mis-pedidos/${nuevo.id}`);
+        return;
+      }
+      intento.current = null;
+      setCompraIniciada(false);
       setPedidoConfirmado(nuevo);
       setCarrito([]);
       setRetiro(false);
@@ -213,6 +241,10 @@ export default function CrearPedidoForm() {
           ? err.message
           : 'No se pudo registrar el pedido.';
 
+      if (err && typeof err === 'object' && 'status' in err && typeof err.status === 'number' && err.status >= 400 && err.status < 500) {
+        intento.current = null;
+        setCompraIniciada(false);
+      }
       setErrorPedido(mensaje);
 
       const coincidencia = mensaje.match(/"([^"]+)"/);
@@ -221,6 +253,7 @@ export default function CrearPedidoForm() {
         coincidencia ? coincidencia[1] : null,
       );
     } finally {
+      bloqueo.current = false;
       setEnviando(false);
     }
   };
@@ -320,16 +353,14 @@ export default function CrearPedidoForm() {
                     )}
                   </p>
                   <p className="modalidad__nota">
-                    El costo del envío se confirma más adelante.
+                    Envío: {formatearPrecio(pedidoConfirmado.costo_envio ?? 0)}
                   </p>
                 </>
               )}
 
               <p className="resumen__total">
                 <span>
-                  {pedidoConfirmado.retiro
-                    ? 'Total'
-                    : 'Total sin envío'}
+                  Total
                 </span>
                 <span className="resumen__total-valor">
                   {formatearPrecio(
@@ -630,7 +661,7 @@ export default function CrearPedidoForm() {
                             onClick={() =>
                               quitarDelCarrito(item.pizzaId)
                             }
-                            disabled={enviando}
+                            disabled={enviando || compraIniciada}
                           >
                             <IconoX />
                           </button>
@@ -639,6 +670,18 @@ export default function CrearPedidoForm() {
                     })}
                   </ul>
                 )}
+
+                <SelectorSegmentado<'efectivo' | 'mercadopago'>
+                  nombre="medio-pago"
+                  leyenda="¿Cómo pagás?"
+                  opciones={[
+                    { valor: 'efectivo', etiqueta: 'Efectivo' },
+                    { valor: 'mercadopago', etiqueta: 'Tarjeta / Mercado Pago' },
+                  ]}
+                  valorSeleccionado={medioPago}
+                  onCambiar={setMedioPago}
+                  deshabilitado={enviando || compraIniciada}
+                />
 
                 <SelectorSegmentado<Modalidad>
                   nombre="modalidad"
@@ -651,9 +694,6 @@ export default function CrearPedidoForm() {
                     {
                       valor: 'envio',
                       etiqueta: 'Envío a domicilio',
-                      describedBy: !retiro
-                        ? NOTA_ENVIO_ID
-                        : undefined,
                     },
                   ]}
                   valorSeleccionado={retiro ? 'retiro' : 'envio'}
@@ -666,18 +706,8 @@ export default function CrearPedidoForm() {
 
                     limpiarErrorPedido();
                   }}
-                  deshabilitado={enviando}
-                >
-                  {!retiro && (
-                    <p
-                      className="modalidad__nota"
-                      id={NOTA_ENVIO_ID}
-                    >
-                      Lo enviamos al domicilio registrado
-                      en tu cuenta.
-                    </p>
-                  )}
-                </SelectorSegmentado>
+                  deshabilitado={enviando || compraIniciada}
+                />
 
                 {!retiro && (
                   <div className="form-group">
@@ -697,19 +727,16 @@ export default function CrearPedidoForm() {
                         setPropina(e.target.value);
                         limpiarErrorPedido();
                       }}
-                      disabled={enviando}
-                      aria-describedby="propina-nota"
+                      disabled={enviando || compraIniciada}
                     />
 
-                    <p
-                      className="modalidad__nota"
-                      id="propina-nota"
-                    >
-                      Podés dejarla en $0. El costo del envío
-                      se confirma más adelante.
-                    </p>
-
+                    {!retiro && costoEnvio === null && (
+                      <p role={errorTarifa ? 'alert' : 'status'}>
+                        {errorTarifa ? 'Envío no disponible por el momento. Podés elegir retiro en el local.' : 'Calculando envío…'}
+                      </p>
+                    )}
                     <p>Pizzas: {formatearPrecio(total)}</p>
+                    <p>Envío: {costoEnvio === null ? '—' : formatearPrecio(costoEnvio)}</p>
                     <p>
                       Propina: {formatearPrecio(propinaResumen)}
                     </p>
@@ -718,10 +745,10 @@ export default function CrearPedidoForm() {
 
                 <p className="resumen__total">
                   <span>
-                    {retiro ? 'Total' : 'Total sin envío'}
+                    Total
                   </span>
                   <span className="resumen__total-valor">
-                    {formatearPrecio(totalConPropina)}
+                    {!retiro && costoEnvio === null ? '—' : formatearPrecio(totalConPropina)}
                   </span>
                 </p>
               </div>
@@ -732,7 +759,7 @@ export default function CrearPedidoForm() {
                   className={`btn btn--primario btn--bloque${
                     enviando ? ' btn--cargando' : ''
                   }`}
-                  disabled={enviando || carrito.length === 0}
+                  disabled={enviando || carrito.length === 0 || (!retiro && costoEnvio === null)}
                   aria-busy={enviando}
                   onClick={() => void confirmarPedido()}
                 >
@@ -743,9 +770,9 @@ export default function CrearPedidoForm() {
                     ></span>
                   )}
 
-                  {enviando ? 'Enviando' : 'Confirmar pedido'}
+                  {enviando ? 'Procesando…' : compraIniciada ? 'Reintentar esta compra' : medioPago === 'mercadopago' ? 'Ir a pagar con Mercado Pago' : 'Confirmar pedido en efectivo'}
 
-                  {!enviando && carrito.length > 0 && (
+                  {!enviando && carrito.length > 0 && (retiro || costoEnvio !== null) && (
                     <span className="btn__total">
                       {formatearPrecio(totalConPropina)}
                     </span>

@@ -32,7 +32,7 @@ export async function crearPedido(nuevo: NuevoPedido): Promise<Pedido> {
   });
   if (!response.ok) {
     const body = await response.json().catch(() => null);
-    throw new Error(body?.message || 'No se pudo registrar el pedido');
+    throw Object.assign(new Error(body?.message || 'No se pudo registrar el pedido'), { status: response.status });
   }
   const body: ApiResponse<Pedido> = await response.json();
   return body.data;
@@ -62,4 +62,11 @@ export async function asignarEnvio(id: number, repartidorId: number, costo: numb
   }
   const body: ApiResponse<Pedido> = await response.json();
   return body.data;
+}
+
+export async function obtenerTarifaEnvio(): Promise<number> {
+  const response = await fetchAutenticado(`${API_URL}/pedidos/tarifa-envio`, { headers: getAuthHeaders() });
+  if (!response.ok) throw await errorRespuesta(response, 'No se pudo cargar el costo del envío');
+  const body: ApiResponse<{ costo: number }> = await response.json();
+  return body.data.costo;
 }

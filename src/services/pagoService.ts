@@ -12,6 +12,9 @@ export interface EstadoPago {
   estado: string;
   importe: number | null;
   puedePagar: boolean;
+  estadoPedido: string;
+  medioPago: 'efectivo' | 'mercadopago' | null;
+  retiro: boolean;
 }
 
 async function solicitar<T>(
@@ -40,10 +43,6 @@ async function solicitar<T>(
   const resultado: { data: T } = await response.json();
 
   return resultado.data;
-}
-
-export function crearCheckout(pedidoId: number) {
-  return solicitar<{ url: string }>('/preferencia', { pedidoId });
 }
 
 export function obtenerEstadoPago(pedidoId: number) {

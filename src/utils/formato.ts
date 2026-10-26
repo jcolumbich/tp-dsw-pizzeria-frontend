@@ -3,7 +3,7 @@ export function obtenerPropinaPedido(pedido: Pedido): number {
   return pedido.retiro ? 0 : pedido.envio?.monto_propina ?? pedido.monto_propina ?? 0;
 }
 export function calcularTotalPedido(pedido: Pedido): number {
-  const costoEnvio = pedido.retiro ? 0 : pedido.envio?.costo ?? 0;
+  const costoEnvio = pedido.retiro ? 0 : pedido.costo_envio ?? pedido.envio?.costo ?? 0;
   return (Math.round(pedido.total * 100) + Math.round(obtenerPropinaPedido(pedido) * 100) + Math.round(costoEnvio * 100)) / 100;
 }
 export function subtotalDetalle(detalle: DetallePedidoItem): number | null {
