@@ -1,3 +1,5 @@
+import { useListado } from '../../hooks/useListado';
+import Paginacion from '../../components/Paginacion';
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { Pizza } from '../../interfaces/pizza';
@@ -10,11 +12,18 @@ import {
 import { crearPizzaSchema } from '../../schemas/pizza.schema';
 import CrearPizzaForm from './crearPizzaForm';
 export default function PizzaList() {
-  const [pizzas, setPizzas] = useState<Pizza[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
   const [filtro, setFiltro] = useState('');
+  const [busqueda, setBusqueda] = useState('');
+  const [pagina, setPagina] = useState(1);
+  const [vegetariana, setVegetariana] = useState('');
+  const [disponible, setDisponible] = useState('');
+  const { data: pizzas, paginacion, cargando, error: errorCarga, recargar } = useListado(getPizzas, {
+    busqueda, pagina, limite: 10,
+    vegetariana: vegetariana === '' ? undefined : vegetariana === 'true',
+    disponible: disponible === '' ? undefined : disponible === 'true',
+  });
   const [editandoId, setEditandoId] = useState<number | null>(null);
   const [nombreEditado, setNombreEditado] = useState('');
   const [precioEditado, setPrecioEditado] = useState('0');
@@ -23,31 +32,6 @@ export default function PizzaList() {
   const [imagenEditada, setImagenEditada] = useState<File | null>(null);
   const [vistaPrevia, setVistaPrevia] = useState('');
   const imagenInputRef = useRef<HTMLInputElement>(null);
-  useEffect(() => {
-    let activo = true;
-    getPizzas()
-      .then((data) => {
-        if (activo) {
-          setPizzas(data);
-          setError(null);
-        }
-      })
-      .catch((err) => {
-        if (activo) {
-          setError(
-            err instanceof Error
-              ? err.message
-              : 'No se pudieron obtener las pizzas.'
-          );
-        }
-      })
-      .finally(() => {
-        if (activo) setCargando(false);
-      });
-    return () => {
-      activo = false;
-    };
-  }, []);
   useEffect(() => {
     return () => {
       if (vistaPrevia) {
@@ -64,7 +48,7 @@ export default function PizzaList() {
     try {
       setGuardando(true);
       await eliminarPizza(id);
-      setPizzas((prev) => prev.filter((item) => item.id !== id));
+      recargar();
       if (editandoId === id) {
         handleCancelarEdicion();
       }
@@ -140,14 +124,12 @@ export default function PizzaList() {
     }
     try {
       setGuardando(true);
-      const actualizada = await actualizarPizza(
+      await actualizarPizza(
         id,
         resultado.data,
         imagenEditada ?? undefined
       );
-      setPizzas((prev) =>
-        prev.map((item) => item.id === id ? actualizada : item)
-      );
+      recargar();
       handleCancelarEdicion();
     } catch (err) {
       setError(
@@ -159,38 +141,42 @@ export default function PizzaList() {
       setGuardando(false);
     }
   };
-  const handlePizzaCreada = (nueva: Pizza) => {
-    setPizzas((prev) => [...prev, nueva]);
-  };
-  const pizzasFiltradas = pizzas.filter((p) =>
-    p.nombre.toLowerCase().includes(filtro.toLowerCase())
-  );
-  if (cargando) return <p>Cargando pizzas...</p>;
+  const handlePizzaCreada = () => { setPagina(1); recargar(); };
   return (
     <div className="ingredientes-container">
       <h2> Gestión de Pizzas</h2>
       <CrearPizzaForm onPizzaCreada={handlePizzaCreada} />
-      {error && (
+      {(error || errorCarga) && (
         <div className="error-message" role="alert">
-          ⚠️ {error}
+          ⚠️ {error || errorCarga}
         </div>
       )}
-      <div className="form-group filtro-container">
-        <label htmlFor="filtro-pizzas">🔍 Buscar por nombre:</label>
-        <input
-          id="filtro-pizzas"
-          type="text"
-          placeholder="Ej. Muzzarella"
-          value={filtro}
-          onChange={(e) => setFiltro(e.target.value)}
-          className="form-input"
-        />
-      </div>
-      {pizzasFiltradas.length === 0 && !error ? (
+      <form className="busqueda-listado" role="search" onSubmit={event => {
+        event.preventDefault(); setBusqueda(filtro.trim()); setPagina(1); handleCancelarEdicion(); recargar();
+      }}>
+        <label>Buscar por nombre
+          <input type="search" maxLength={120} value={filtro} onChange={event => setFiltro(event.target.value)} />
+        </label>
+        <label>Tipo
+          <select value={vegetariana} disabled={guardando} onChange={event => { setVegetariana(event.target.value); setPagina(1); handleCancelarEdicion(); }}>
+            <option value="">Todas</option><option value="true">Vegetarianas</option><option value="false">No vegetarianas</option>
+          </select>
+        </label>
+        <label>Disponibilidad
+          <select value={disponible} disabled={guardando} onChange={event => { setDisponible(event.target.value); setPagina(1); handleCancelarEdicion(); }}>
+            <option value="">Todas</option><option value="true">Disponibles</option><option value="false">No disponibles</option>
+          </select>
+        </label>
+        <button type="submit" disabled={guardando}>Buscar</button>
+        <button type="button" disabled={guardando} onClick={() => {
+          setFiltro(''); setBusqueda(''); setVegetariana(''); setDisponible(''); setPagina(1); handleCancelarEdicion();
+        }}>Limpiar</button>
+      </form>
+      {errorCarga && <button type="button" onClick={recargar}>Reintentar</button>}
+      {cargando ? <p role="status">Cargando pizzas…</p> :
+      pizzas.length === 0 && !error ? (
         <p>
-          {pizzas.length === 0
-            ? 'No hay pizzas registradas.'
-            : 'No se encontraron pizzas con ese nombre.'}
+          No se encontraron pizzas para los filtros seleccionados.
         </p>
       ) : (
         <table className="ingredientes-table">
@@ -205,7 +191,7 @@ export default function PizzaList() {
             </tr>
           </thead>
           <tbody>
-            {pizzasFiltradas.map((p) => (
+            {pizzas.map((p) => (
               <tr key={p.id}>
                 <td>
                   <div className="form-group">
@@ -350,6 +336,8 @@ export default function PizzaList() {
           </tbody>
         </table>
       )}
+      <Paginacion datos={paginacion} deshabilitada={cargando || guardando}
+        cambiarPagina={valor => { setPagina(valor); handleCancelarEdicion(); }} />
     </div>
   );
 }

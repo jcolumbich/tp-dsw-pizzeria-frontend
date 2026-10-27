@@ -1,3 +1,5 @@
+import { useListado } from '../../hooks/useListado';
+import Paginacion from '../../components/Paginacion';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import type { Pizza } from '../../interfaces/pizza';
@@ -53,9 +55,10 @@ export default function CrearPedidoForm() {
     return () => { activo = false; };
   }, []);
 
-  const [pizzas, setPizzas] = useState<Pizza[]>([]);
-  const [cargando, setCargando] = useState(true);
-  const [errorCarga, setErrorCarga] = useState<string | null>(null);
+  const [pagina, setPagina] = useState(1);
+  const { data: pizzas, paginacion, cargando, error: errorCarga, recargar } = useListado(getPizzas, {
+    pagina, limite: 12, disponible: true,
+  });
   const [retiro, setRetiro] = useState(false);
   const [propina, setPropina] = useState('0');
   const [carrito, setCarrito] = useState<ItemCarrito[]>([]);
@@ -67,35 +70,6 @@ export default function CrearPedidoForm() {
 
   const toggleRef = useRef<HTMLButtonElement>(null);
   const tituloExitoRef = useRef<HTMLHeadingElement>(null);
-
-  useEffect(() => {
-    let activo = true;
-
-    const cargarPizzas = async () => {
-      try {
-        const pizzasData = await getPizzas();
-
-        if (!activo) return;
-
-        setPizzas(pizzasData);
-        setErrorCarga(null);
-      } catch (err) {
-        if (activo) {
-          setErrorCarga('No se pudieron cargar las pizzas.');
-        }
-
-        console.error(err);
-      } finally {
-        if (activo) setCargando(false);
-      }
-    };
-
-    void cargarPizzas();
-
-    return () => {
-      activo = false;
-    };
-  }, []);
 
   useEffect(() => {
     if (!resumenAbierto) return;
@@ -410,8 +384,8 @@ export default function CrearPedidoForm() {
 
               {!cargando && pizzas.length > 0 && (
                 <p className="carta__cuenta">
-                  {pizzas.length}{' '}
-                  {pizzas.length === 1 ? 'pizza' : 'pizzas'}
+                  {paginacion?.total ?? 0}{' '}
+                  {paginacion?.total === 1 ? 'pizza' : 'pizzas'}
                 </p>
               )}
             </div>
@@ -420,6 +394,7 @@ export default function CrearPedidoForm() {
               <AlertaError
                 titulo="No pudimos cargar la carta"
                 mensaje={errorCarga}
+                accion={<button type="button" onClick={recargar}>Reintentar</button>}
               />
             )}
 
@@ -549,6 +524,7 @@ export default function CrearPedidoForm() {
                 })}
               </ul>
             )}
+            <Paginacion datos={paginacion} cambiarPagina={setPagina} deshabilitada={cargando} etiqueta="Páginas de pizzas" />
           </section>
 
           <aside
@@ -710,36 +686,50 @@ export default function CrearPedidoForm() {
                 />
 
                 {!retiro && (
-                  <div className="form-group">
-                    <label htmlFor="propina-pedido">
-                      Propina para el repartidor (opcional)
-                    </label>
+                  <div className="resumen__envio">
+                    <div className="form-group">
+                      <label htmlFor="propina-pedido">
+                        Propina para el repartidor <span>(opcional)</span>
+                      </label>
 
-                    <input
-                      id="propina-pedido"
-                      className="form-input"
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      inputMode="decimal"
-                      value={propina}
-                      onChange={(e) => {
-                        setPropina(e.target.value);
-                        limpiarErrorPedido();
-                      }}
-                      disabled={enviando || compraIniciada}
-                    />
+                      <input
+                        id="propina-pedido"
+                        className="form-input"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        inputMode="decimal"
+                        value={propina}
+                        onChange={(e) => {
+                          setPropina(e.target.value);
+                          limpiarErrorPedido();
+                        }}
+                        disabled={enviando || compraIniciada}
+                      />
 
-                    {!retiro && costoEnvio === null && (
-                      <p role={errorTarifa ? 'alert' : 'status'}>
-                        {errorTarifa ? 'Envío no disponible por el momento. Podés elegir retiro en el local.' : 'Calculando envío…'}
+                      {costoEnvio === null && (
+                        <p className="resumen__estado-envio" role={errorTarifa ? 'alert' : 'status'}>
+                          {errorTarifa
+                            ? 'Envío no disponible por el momento. Podés elegir retiro en el local.'
+                            : 'Calculando envío…'}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="resumen__costos">
+                      <p>
+                        <span>Pizzas</span>
+                        <strong>{formatearPrecio(total)}</strong>
                       </p>
-                    )}
-                    <p>Pizzas: {formatearPrecio(total)}</p>
-                    <p>Envío: {costoEnvio === null ? '—' : formatearPrecio(costoEnvio)}</p>
-                    <p>
-                      Propina: {formatearPrecio(propinaResumen)}
-                    </p>
+                      <p>
+                        <span>Envío</span>
+                        <strong>{costoEnvio === null ? '—' : formatearPrecio(costoEnvio)}</strong>
+                      </p>
+                      <p>
+                        <span>Propina</span>
+                        <strong>{formatearPrecio(propinaResumen)}</strong>
+                      </p>
+                    </div>
                   </div>
                 )}
 

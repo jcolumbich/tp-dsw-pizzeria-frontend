@@ -1,4 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useListado } from '../../hooks/useListado';
+import Paginacion from '../../components/Paginacion';
+import { useState } from 'react';
 import type { Repartidor } from '../../interfaces/repartidor';
 import {
   getRepartidores,
@@ -9,17 +11,8 @@ import { editarRepartidorSchema } from '../../schemas/repartidor.schema';
 import CrearRepartidorForm from './crearRepartidorForm';
 import '../gestionPersonas.css';
 
-const normalizarBusqueda = (texto: string) =>
-  texto
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLocaleLowerCase('es')
-    .trim();
-
 export default function RepartidorList() {
-  const [repartidores, setRepartidores] = useState<Repartidor[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
 
   const [filtro, setFiltro] = useState('');
@@ -35,33 +28,9 @@ export default function RepartidorList() {
   const [confirmandoEliminarId, setConfirmandoEliminarId] =
     useState<number | null>(null);
 
-  useEffect(() => {
-    let activo = true;
-
-    void getRepartidores()
-      .then((datos) => {
-        if (activo) {
-          setRepartidores(datos);
-          setError(null);
-        }
-      })
-      .catch((error: unknown) => {
-        if (activo) {
-          setError(
-            error instanceof Error
-              ? error.message
-              : 'No se pudieron obtener los repartidores.',
-          );
-        }
-      })
-      .finally(() => {
-        if (activo) setCargando(false);
-      });
-
-    return () => {
-      activo = false;
-    };
-  }, []);
+  const { data: repartidores, paginacion, cargando, error: errorCarga, recargar } = useListado(
+    getRepartidores, { busqueda, pagina, limite: 10 },
+  );
 
   const handleConfirmarEliminar = async (id: number) => {
     if (guardando) return;
@@ -70,7 +39,7 @@ export default function RepartidorList() {
     try {
       setGuardando(true);
       await eliminarRepartidor(id);
-      setRepartidores((prev) => prev.filter((item) => item.id !== id));
+      recargar();
 
       if (editandoId === id) setEditandoId(null);
     } catch (err) {
@@ -115,11 +84,9 @@ export default function RepartidorList() {
 
     try {
       setGuardando(true);
-      const actualizado = await actualizarRepartidor(id, resultado.data);
+      await actualizarRepartidor(id, resultado.data);
 
-      setRepartidores((prev) =>
-        prev.map((item) => (item.id === id ? actualizado : item)),
-      );
+      recargar();
 
       setEditandoId(null);
     } catch (err) {
@@ -133,38 +100,12 @@ export default function RepartidorList() {
     }
   };
 
-  const handleRepartidorCreado = (nuevo: Repartidor) => {
-    setRepartidores((prev) => [nuevo, ...prev]);
+  const handleRepartidorCreado = () => {
+    recargar();
     setFiltro('');
     setBusqueda('');
     setPagina(1);
   };
-
-  const indice = useMemo(
-    () =>
-      repartidores.map((persona) => ({
-        persona,
-        texto: normalizarBusqueda(
-          `${persona.nombre} ${persona.apellido} ${persona.email ?? ''} ${persona.matricula ?? ''}`,
-        ),
-      })),
-    [repartidores],
-  );
-
-  const resultados = useMemo(() => {
-    const palabras = busqueda.split(/\s+/).filter(Boolean);
-
-    return indice
-      .filter((item) =>
-        palabras.every((palabra) => item.texto.includes(palabra)),
-      )
-      .map((item) => item.persona);
-  }, [indice, busqueda]);
-
-  const totalPaginas = Math.max(1, Math.ceil(resultados.length / 10));
-  const paginaActual = Math.min(pagina, totalPaginas);
-  const inicio = (paginaActual - 1) * 10;
-  const visibles = resultados.slice(inicio, inicio + 10);
 
   const limpiarBusqueda = () => {
     setFiltro('');
@@ -214,7 +155,7 @@ export default function RepartidorList() {
           event.preventDefault();
           if (guardando || cargando) return;
 
-          setBusqueda(normalizarBusqueda(filtro));
+          setBusqueda(filtro.trim());
           setPagina(1);
           setEditandoId(null);
           setConfirmandoEliminarId(null);
@@ -226,6 +167,7 @@ export default function RepartidorList() {
           <input
             id="filtro-repartidores"
             type="search"
+            maxLength={120}
             value={filtro}
             onChange={(event) => setFiltro(event.target.value)}
             placeholder="Nombre, apellido, correo o matrícula"
@@ -255,9 +197,9 @@ export default function RepartidorList() {
         </p>
       </form>
 
-      {error && (
+      {(error || errorCarga) && (
         <p className="gp-error" role="alert">
-          {error}
+          {error || errorCarga}
         </p>
       )}
 
@@ -265,12 +207,12 @@ export default function RepartidorList() {
         <div className="gp-resumen" role="status">
           {cargando
             ? 'Cargando repartidores…'
-            : `${resultados.length} de ${repartidores.length} repartidores`}
+            : `${paginacion?.total ?? 0} repartidores`}
 
           {busqueda && <span>Búsqueda aplicada: “{busqueda}”</span>}
         </div>
 
-        {!cargando && resultados.length === 0 && (
+        {!cargando && repartidores.length === 0 && (
           <p className="gp-vacio">
             {error
               ? 'No se pudo mostrar el listado.'
@@ -280,7 +222,7 @@ export default function RepartidorList() {
           </p>
         )}
 
-        {!cargando && resultados.length > 0 && (
+        {!cargando && repartidores.length > 0 && (
           <>
             <div
               className="gp-tabla-scroll"
@@ -306,7 +248,7 @@ export default function RepartidorList() {
                 </thead>
 
                 <tbody>
-                  {visibles.map((persona) => (
+                  {repartidores.map((persona) => (
                     <tr key={persona.id}>
                       {[
                         {
@@ -445,39 +387,12 @@ export default function RepartidorList() {
               </table>
             </div>
 
-            <nav
-              className="gp-paginacion"
-              aria-label="Paginación de repartidores"
-            >
-              <span>
-                Mostrando {inicio + 1}–
-                {Math.min(inicio + 10, resultados.length)} de {resultados.length}
-              </span>
 
-              <div className="gp-acciones">
-                <button
-                  type="button"
-                  disabled={paginaActual === 1 || guardando}
-                  onClick={() => cambiarPagina(paginaActual - 1)}
-                >
-                  Anterior
-                </button>
-
-                <span>
-                  Página {paginaActual} de {totalPaginas}
-                </span>
-
-                <button
-                  type="button"
-                  disabled={paginaActual === totalPaginas || guardando}
-                  onClick={() => cambiarPagina(paginaActual + 1)}
-                >
-                  Siguiente
-                </button>
-              </div>
-            </nav>
           </>
         )}
+        <Paginacion datos={paginacion} cambiarPagina={cambiarPagina}
+          deshabilitada={guardando || cargando} etiqueta="Paginación de repartidores" />
+        {errorCarga && <button type="button" onClick={recargar}>Reintentar</button>}
       </div>
     </section>
   );

@@ -1,0 +1,7 @@
+.paginacion-listado { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; margin: 1rem 0; }
+.paginacion-listado > div { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; }
+.paginacion-listado button { padding: .5rem .85rem; cursor: pointer; }
+.paginacion-listado button:disabled { cursor: default; opacity: .5; }
+.busqueda-listado { display: flex; flex-wrap: wrap; align-items: end; gap: .75rem; margin: 1rem 0; }
+.busqueda-listado label { display: grid; gap: .25rem; }
+.busqueda-listado input, .busqueda-listado select, .busqueda-listado button { padding: .5rem; max-width: 100%; }

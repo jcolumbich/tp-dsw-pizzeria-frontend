@@ -2,13 +2,12 @@ import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import type { Pedido } from '../../interfaces/pedido';
-import type { Repartidor } from '../../interfaces/repartidor';
+import SelectorRepartidor from '../../components/SelectorRepartidor';
 import {
   actualizarEstadoPedido,
   asignarEnvio,
   getPedidoById,
 } from '../../services/pedidoService';
-import { getRepartidores } from '../../services/repartidorService';
 import { asignarEnvioSchema } from '../../schemas/pedido.schema';
 import {
   calcularTotalPedido,
@@ -24,7 +23,6 @@ export default function PedidoDetalle() {
   const pedidoId = Number(id);
 
   const [pedido, setPedido] = useState<Pedido | null>(null);
-  const [repartidores, setRepartidores] = useState<Repartidor[]>([]);
   const [repartidorId, setRepartidorId] = useState<number | ''>('');
   const [costo, setCosto] = useState('0');
   const [cargando, setCargando] = useState(true);
@@ -49,16 +47,10 @@ export default function PedidoDetalle() {
           );
         }
 
-        const [datos, lista] = await Promise.all([
-          getPedidoById(pedidoId),
-          getRepartidores().catch(() => []),
-        ]);
+        const datos = await getPedidoById(pedidoId);
 
         if (activo) {
           setPedido(datos);
-          setRepartidores(
-            lista.filter((repartidor) => repartidor.estado),
-          );
           setRepartidorId('');
           setCosto(String(datos.costo_envio ?? datos.envio?.costo ?? 0));
         }
@@ -326,42 +318,7 @@ export default function PedidoDetalle() {
               onSubmit={(e) => void guardarEnvio(e)}
               noValidate
             >
-              <div className="form-group">
-                <label htmlFor="repartidor-pedido">
-                  Repartidor
-                </label>
-
-                <select
-                  id="repartidor-pedido"
-                  className="form-input"
-                  value={repartidorId}
-                  onChange={(e) =>
-                    setRepartidorId(
-                      e.target.value === ''
-                        ? ''
-                        : Number(e.target.value),
-                    )
-                  }
-                  disabled={guardando}
-                  required
-                >
-                  <option value="">
-                    Seleccioná un repartidor
-                  </option>
-
-                  {repartidores.map((repartidor) => (
-                    <option
-                      key={repartidor.id}
-                      value={repartidor.id}
-                    >
-                      {repartidor.nombre}{' '}
-                      {repartidor.apellido}
-                      {' — '}
-                      {repartidor.matricula}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <SelectorRepartidor valor={repartidorId} onChange={setRepartidorId} soloActivos deshabilitado={guardando} />
 
               <div className="form-group-small">
                 <label htmlFor="costo-pedido">
@@ -387,7 +344,7 @@ export default function PedidoDetalle() {
                   className="btn-submit"
                   type="submit"
                   disabled={
-                    guardando || repartidores.length === 0
+                    guardando || repartidorId === ''
                   }
                 >
                   {guardando
@@ -396,9 +353,7 @@ export default function PedidoDetalle() {
                 </button>
               </div>
 
-              {repartidores.length === 0 && (
-                <p>No hay repartidores disponibles.</p>
-              )}
+
             </form>
           ) : (
             <p>

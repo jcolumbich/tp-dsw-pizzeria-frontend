@@ -1,3 +1,5 @@
+import type { FiltrosPersona, Pagina } from '../interfaces/listado';
+import { obtenerPagina } from './listadoService';
 import type {Repartidor, NuevoRepartidor,ActualizarRepartidor,} from '../interfaces/repartidor';
 import { fetchAutenticado, getAuthHeaders } from './httpCliente.ts';
 
@@ -8,18 +10,9 @@ interface ApiResponse<T> {
   data: T;
 }
 
-export async function getRepartidores(): Promise<Repartidor[]> {
-  const response = await fetchAutenticado(`${API_URL}/repartidores`, {
-    headers: { ...getAuthHeaders() },
-  });
-  if (!response.ok) {
-  const body = await response.json().catch(() => null);
-  throw new Error(body?.message || `Error al crear repartidor: ${response.status}`);
- }
-  const body: ApiResponse<Repartidor[]> = await response.json();
-  return body.data;
+export async function getRepartidores(filtros: FiltrosPersona = {}, signal?: AbortSignal): Promise<Pagina<Repartidor>> {
+  return obtenerPagina<Repartidor>('repartidores', filtros, signal);
 }
-
 export async function crearRepartidor(
   nuevoRepartidor: NuevoRepartidor
 ): Promise<Repartidor> {

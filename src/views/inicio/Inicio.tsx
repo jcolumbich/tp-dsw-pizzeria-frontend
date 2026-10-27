@@ -2,7 +2,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/useAuth';
-import type { Pizza } from '../../interfaces/pizza';
+import { useListado } from '../../hooks/useListado.ts';
+import Paginacion from '../../components/Paginacion';
 import {
   getPizzas,
   obtenerUrlImagenPizza,
@@ -15,9 +16,10 @@ export default function Inicio() {
   const { usuario } = useAuth();
   const { hash } = useLocation();
 
-  const [pizzas, setPizzas] = useState<Pizza[]>([]);
-  const [cargando, setCargando] = useState(true);
-  const [error, setError] = useState(false);
+  const [pagina, setPagina] = useState(1);
+  const { data: pizzas, paginacion, cargando, error, recargar } = useListado(getPizzas, {
+    pagina, limite: 12, disponible: true,
+  });
 
   const esAdmin = (usuario?.nivel_permisos ?? 0) >= 1;
 
@@ -64,27 +66,6 @@ export default function Inicio() {
 
     return () => observador.disconnect();
   }, [pizzas]);
-
-  useEffect(() => {
-    let activo = true;
-
-    getPizzas()
-      .then((lista) => {
-        if (activo) {
-          setPizzas(lista.filter((pizza) => pizza.disponible));
-        }
-      })
-      .catch(() => {
-        if (activo) setError(true);
-      })
-      .finally(() => {
-        if (activo) setCargando(false);
-      });
-
-    return () => {
-      activo = false;
-    };
-  }, []);
 
   return (
     <div className="inicio" ref={portadaRef}>
@@ -192,7 +173,7 @@ export default function Inicio() {
           <p className="inicio-estado">Cargando carta...</p>
         ) : error ? (
           <p className="inicio-estado" role="alert">
-            No pudimos cargar la carta. Intentá de nuevo más tarde.
+            No pudimos cargar la carta. <button type="button" onClick={recargar}>Reintentar</button>
           </p>
         ) : pizzas.length === 0 ? (
           <p className="inicio-estado">
@@ -259,6 +240,7 @@ export default function Inicio() {
             ))}
           </div>
         )}
+        <Paginacion datos={paginacion} cambiarPagina={setPagina} deshabilitada={cargando} etiqueta="Páginas de la carta" />
       </section>
 
       {/* SECCIÓN INFERIOR CON FOTO */}

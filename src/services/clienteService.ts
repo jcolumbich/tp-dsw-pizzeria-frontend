@@ -1,3 +1,5 @@
+import type { FiltrosPersona, Pagina } from '../interfaces/listado.ts';
+import { obtenerPagina } from './listadoService.ts';
 import type { Cliente, NuevoCliente, ActualizarCliente } from '../interfaces/cliente';
 import { fetchAutenticado, getAuthHeaders } from './httpCliente.ts';
 
@@ -17,20 +19,9 @@ async function obtenerMensajeError(response: Response, mensajePredeterminado: st
   return body?.message || mensajePredeterminado;
 }
 
-export async function getClientes(): Promise<Cliente[]> {
-  const response = await fetchAutenticado(`${API_URL}/clientes`, {
-    headers: { ...getAuthHeaders() },
-  });
-
-  if (!response.ok) {
-    const mensaje = await obtenerMensajeError(response, `Error al obtener clientes: ${response.status}`);
-    throw new Error(mensaje);
-  }
-
-  const body: ApiResponse<Cliente[]> = await response.json();
-  return body.data;
+export async function getClientes(filtros: FiltrosPersona = {}, signal?: AbortSignal): Promise<Pagina<Cliente>> {
+  return obtenerPagina<Cliente>('clientes', filtros, signal);
 }
-
 export async function crearCliente(nuevo: NuevoCliente): Promise<Cliente> {
   const response = await fetchAutenticado(`${API_URL}/clientes`, {
     method: 'POST',

@@ -13,7 +13,7 @@ const pizza = { id: 1, nombre: 'Muzzarella', precio: 1000, disponible: true, veg
 const pedido: Pedido = { id: 8, dia: '2026-10-23', retiro: false, total: 1000, estado: 'Pendiente', costo_envio: 200, medio_pago: 'efectivo', detalles: [{ pizza, cantidad: 1, precio_unitario: 1000 }] };
 beforeEach(() => {
   vi.resetAllMocks();
-  vi.mocked(getPizzas).mockResolvedValue([pizza]);
+  vi.mocked(getPizzas).mockResolvedValue({ data: [pizza], paginacion: { pagina: 1, limite: 12, total: 1, totalPaginas: 1 } });
   vi.mocked(obtenerTarifaEnvio).mockResolvedValue(200);
   vi.mocked(crearPedido).mockResolvedValue(pedido);
 });
@@ -50,4 +50,18 @@ describe('compra con medio de pago elegido al inicio', () => {
     await screen.findByText('¡Listo! Ya tenemos tu pedido');
     expect(crearPedido).toHaveBeenLastCalledWith(original);
   });
+});
+
+it('conserva el carrito al cambiar de página del catálogo', async () => {
+  vi.mocked(getPizzas)
+    .mockResolvedValueOnce({ data: [pizza], paginacion: { pagina: 1, limite: 12, total: 13, totalPaginas: 2 } })
+    .mockResolvedValueOnce({ data: [{ ...pizza, id: 2, nombre: 'Napolitana' }], paginacion: { pagina: 2, limite: 12, total: 13, totalPaginas: 2 } });
+  await montar();
+  fireEvent.click(screen.getByRole('button', { name: 'Siguiente' }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Agregar Napolitana al pedido' }));
+  fireEvent.click(screen.getByRole('button', { name: /Confirmar pedido en efectivo/ }));
+  await screen.findByText('¡Listo! Ya tenemos tu pedido');
+  expect(crearPedido).toHaveBeenCalledWith(expect.objectContaining({ items: [
+    { pizzaId: 1, cantidad: 1 }, { pizzaId: 2, cantidad: 1 },
+  ] }));
 });

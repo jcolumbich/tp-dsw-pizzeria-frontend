@@ -1,4 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useListado } from '../../hooks/useListado.ts';
+import Paginacion from '../../components/Paginacion';
+import { useState } from 'react';
 import type { Cliente } from '../../interfaces/cliente';
 import {
   getClientes,
@@ -9,17 +11,8 @@ import { editarClienteSchema } from '../../schemas/cliente.schema';
 import CrearClienteForm from './crearClienteForm';
 import '../gestionPersonas.css';
 
-const normalizarBusqueda = (texto: string) =>
-  texto
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLocaleLowerCase('es')
-    .trim();
-
 export default function ClienteList() {
-  const [clientes, setClientes] = useState<Cliente[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
 
   const [filtro, setFiltro] = useState('');
@@ -33,33 +26,9 @@ export default function ClienteList() {
   const [domicilioEditado, setDomicilioEditado] = useState('');
   const [estadoEditado, setEstadoEditado] = useState(true);
 
-  useEffect(() => {
-    let activo = true;
-
-    void getClientes()
-      .then((datos) => {
-        if (activo) {
-          setClientes(datos);
-          setError(null);
-        }
-      })
-      .catch((error: unknown) => {
-        if (activo) {
-          setError(
-            error instanceof Error
-              ? error.message
-              : 'No se pudieron obtener los clientes.',
-          );
-        }
-      })
-      .finally(() => {
-        if (activo) setCargando(false);
-      });
-
-    return () => {
-      activo = false;
-    };
-  }, []);
+  const { data: clientes, paginacion, cargando, error: errorCarga, recargar } = useListado(
+    getClientes, { busqueda, pagina, limite: 10 },
+  );
 
   const handleEliminar = async (id: number) => {
     if (guardando) return;
@@ -73,7 +42,7 @@ export default function ClienteList() {
     try {
       setGuardando(true);
       await eliminarCliente(id);
-      setClientes((prev) => prev.filter((item) => item.id !== id));
+      recargar();
 
       if (editandoId === id) setEditandoId(null);
     } catch (err) {
@@ -116,11 +85,9 @@ export default function ClienteList() {
 
     try {
       setGuardando(true);
-      const actualizado = await actualizarCliente(id, resultado.data);
+      await actualizarCliente(id, resultado.data);
 
-      setClientes((prev) =>
-        prev.map((item) => (item.id === id ? actualizado : item)),
-      );
+      recargar();
 
       setEditandoId(null);
     } catch (err) {
@@ -134,41 +101,12 @@ export default function ClienteList() {
     }
   };
 
-  const handleClienteCreado = (nuevo: Cliente) => {
-    setClientes((prev) => [nuevo, ...prev]);
+  const handleClienteCreado = () => {
+    recargar();
     setFiltro('');
     setBusqueda('');
     setPagina(1);
   };
-
-  // Se prepara el texto de búsqueda solo cuando cambia el listado.
-  const indice = useMemo(
-    () =>
-      clientes.map((persona) => ({
-        persona,
-        texto: normalizarBusqueda(
-          `${persona.nombre} ${persona.apellido} ${persona.email ?? ''} ${persona.domicilio ?? ''}`,
-        ),
-      })),
-    [clientes],
-  );
-
-  // Escribir en el input no vuelve a filtrar.
-  // Solo cambia al confirmar la búsqueda o modificar los datos.
-  const resultados = useMemo(() => {
-    const palabras = busqueda.split(/\s+/).filter(Boolean);
-
-    return indice
-      .filter((item) =>
-        palabras.every((palabra) => item.texto.includes(palabra)),
-      )
-      .map((item) => item.persona);
-  }, [indice, busqueda]);
-
-  const totalPaginas = Math.max(1, Math.ceil(resultados.length / 10));
-  const paginaActual = Math.min(pagina, totalPaginas);
-  const inicio = (paginaActual - 1) * 10;
-  const visibles = resultados.slice(inicio, inicio + 10);
 
   const limpiarBusqueda = () => {
     setFiltro('');
@@ -213,7 +151,7 @@ export default function ClienteList() {
           event.preventDefault();
           if (guardando || cargando) return;
 
-          setBusqueda(normalizarBusqueda(filtro));
+          setBusqueda(filtro.trim());
           setPagina(1);
           setEditandoId(null);
         }}
@@ -224,6 +162,7 @@ export default function ClienteList() {
           <input
             id="filtro-clientes"
             type="search"
+            maxLength={120}
             value={filtro}
             onChange={(event) => setFiltro(event.target.value)}
             placeholder="Nombre, apellido, correo o domicilio"
@@ -253,9 +192,9 @@ export default function ClienteList() {
         </p>
       </form>
 
-      {error && (
+      {(error || errorCarga) && (
         <p className="gp-error" role="alert">
-          {error}
+          {error || errorCarga}
         </p>
       )}
 
@@ -263,12 +202,12 @@ export default function ClienteList() {
         <div className="gp-resumen" role="status">
           {cargando
             ? 'Cargando clientes…'
-            : `${resultados.length} de ${clientes.length} clientes`}
+            : `${paginacion?.total ?? 0} clientes`}
 
           {busqueda && <span>Búsqueda aplicada: “{busqueda}”</span>}
         </div>
 
-        {!cargando && resultados.length === 0 && (
+        {!cargando && clientes.length === 0 && (
           <p className="gp-vacio">
             {error
               ? 'No se pudo mostrar el listado.'
@@ -278,7 +217,7 @@ export default function ClienteList() {
           </p>
         )}
 
-        {!cargando && resultados.length > 0 && (
+        {!cargando && clientes.length > 0 && (
           <>
             <div
               className="gp-tabla-scroll"
@@ -304,7 +243,7 @@ export default function ClienteList() {
                 </thead>
 
                 <tbody>
-                  {visibles.map((persona) => (
+                  {clientes.map((persona) => (
                     <tr key={persona.id}>
                       {[
                         {
@@ -418,36 +357,12 @@ export default function ClienteList() {
               </table>
             </div>
 
-            <nav className="gp-paginacion" aria-label="Paginación de clientes">
-              <span>
-                Mostrando {inicio + 1}–
-                {Math.min(inicio + 10, resultados.length)} de {resultados.length}
-              </span>
 
-              <div className="gp-acciones">
-                <button
-                  type="button"
-                  disabled={paginaActual === 1 || guardando}
-                  onClick={() => cambiarPagina(paginaActual - 1)}
-                >
-                  Anterior
-                </button>
-
-                <span>
-                  Página {paginaActual} de {totalPaginas}
-                </span>
-
-                <button
-                  type="button"
-                  disabled={paginaActual === totalPaginas || guardando}
-                  onClick={() => cambiarPagina(paginaActual + 1)}
-                >
-                  Siguiente
-                </button>
-              </div>
-            </nav>
           </>
         )}
+        <Paginacion datos={paginacion} cambiarPagina={cambiarPagina}
+          deshabilitada={guardando || cargando} etiqueta="Paginación de clientes" />
+        {errorCarga && <button type="button" onClick={recargar}>Reintentar</button>}
       </div>
     </section>
   );

@@ -1,42 +1,28 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { Pedido } from '../../interfaces/pedido';
+import { useListado } from '../../hooks/useListado';
+import Paginacion from '../../components/Paginacion';
 import { ESTADOS_PEDIDO } from '../../interfaces/pedido';
 import { getPedidos } from '../../services/pedidoService';
 import { calcularTotalPedido } from '../../utils/formato';
 
 export default function PedidoList() {
-  const [pedidos, setPedidos] = useState<Pedido[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [cargando, setCargando] = useState<boolean>(true);
-  const [filtroEstado, setFiltroEstado] = useState<string>('Activos');
+  const [filtroEstado, setFiltroEstado] = useState('Activos');
+  const [pagina, setPagina] = useState(1);
 
-  useEffect(() => {
-    const cargarPedidos = async () => {
-      try {
-        setCargando(true);
-
-        const estadoBackend = filtroEstado !== 'Activos' && filtroEstado !== '' ? filtroEstado : undefined;
-        const data = await getPedidos(estadoBackend);
-
-        const pedidosFiltrados = filtroEstado === 'Activos'
-          ? data.filter((pedido) => pedido.estado !== 'Cancelado')
-          : data;
-
-        const pedidosOrdenados = [...pedidosFiltrados].sort((a, b) => new Date(b.dia).getTime() - new Date(a.dia).getTime());
-
-        setPedidos(pedidosOrdenados);
-        setError(null);
-      } catch (err) {
-        setError('No se pudo conectar con el servidor para obtener los pedidos.');
-        console.error(err);
-      } finally {
-        setCargando(false);
-      }
-    };
-
-    void cargarPedidos();
-  }, [filtroEstado]);
+  const {
+    data: pedidos,
+    paginacion,
+    cargando,
+    error,
+    recargar,
+  } = useListado(getPedidos, {
+    pagina,
+    limite: 10,
+    estado: filtroEstado && filtroEstado !== 'Activos' ? filtroEstado : undefined,
+    activos: filtroEstado === 'Activos' ? true : undefined,
+  });
 
   const calcularTotalItems = (pedido: Pedido) => {
     return pedido.detalles.reduce((acc, detalle) => acc + detalle.cantidad, 0);
@@ -65,11 +51,15 @@ export default function PedidoList() {
       <h2>Pedidos</h2>
 
       <div className="form-group filtro-container">
-        <label>Filtrar por estado:</label>
+        <label htmlFor="estado-pedidos">Filtrar por estado:</label>
 
         <select
+          id="estado-pedidos"
           value={filtroEstado}
-          onChange={(e) => setFiltroEstado(e.target.value)}
+          onChange={(e) => {
+            setFiltroEstado(e.target.value);
+            setPagina(1);
+          }}
           className="form-input"
         >
           <option value="Activos">Activos (sin cancelados)</option>
@@ -83,7 +73,14 @@ export default function PedidoList() {
         </select>
       </div>
 
-      {error && <div className="error-message">⚠️ {error}</div>}
+      {error && (
+        <div className="error-message" role="alert">
+          {error}{' '}
+          <button type="button" onClick={recargar}>
+            Reintentar
+          </button>
+        </div>
+      )}
 
       {cargando ? (
         <p>Cargando pedidos...</p>
@@ -118,7 +115,10 @@ export default function PedidoList() {
 
                 <tbody>
                   {pedidosDelDia.map((pedido) => (
-                    <tr key={pedido.id} className={pedido.estado === 'Cancelado' ? 'pedido-cancelado' : ''}>
+                    <tr
+                      key={pedido.id}
+                      className={pedido.estado === 'Cancelado' ? 'pedido-cancelado' : ''}
+                    >
                       <td>#{pedido.id}</td>
 
                       <td>
@@ -139,7 +139,11 @@ export default function PedidoList() {
                       <td>${calcularTotalPedido(pedido).toFixed(2)}</td>
 
                       <td>
-                        <span className={`badge-estado estado-${pedido.estado.toLowerCase().replaceAll(' ', '-')}`}>
+                        <span
+                          className={`badge-estado estado-${pedido.estado
+                            .toLowerCase()
+                            .replaceAll(' ', '-')}`}
+                        >
                           {pedido.estado}
                         </span>
                       </td>
@@ -157,6 +161,12 @@ export default function PedidoList() {
           ))}
         </div>
       )}
+
+      <Paginacion
+        datos={paginacion}
+        cambiarPagina={setPagina}
+        deshabilitada={cargando}
+      />
     </div>
   );
 }

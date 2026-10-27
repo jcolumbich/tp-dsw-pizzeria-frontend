@@ -1,11 +1,3 @@
-/* Nuevo pedido — estilos aislados bajo .pedido-nuevo.
-   Tokens mapeados a las variables reales del proyecto (ver src/App.css).
-   .pedido-nuevo es también la clase raíz de tipografía compartida por las
-   tres pantallas rediseñadas (Nuevo pedido, Mis pedidos y Detalle): Mis
-   pedidos y Detalle la agregan junto a .mis-pedidos en su elemento raíz para
-   heredar --pn-fuente-titulos/--pn-fuente-texto (Young Serif / Hanken
-   Grotesk, cargadas en index.html) sin redefinirlas. Los colores de estado
-   nuevos están en misPedidos.css, mapeados a estos mismos --pn-*. */
 
 .pedido-nuevo {
   --pn-color-fondo: var(--color-bg);
@@ -872,17 +864,220 @@
   border-bottom: 1px solid var(--pn-color-borde);
 }
 
-/* ---------- Movimiento reducido ---------- */
+/* ---------- Resumen: separación, desglose y total ---------- */
+/* Estas reglas son generales: quedan fuera de los bloques @media. */
 
+.pedido-nuevo .resumen__panel {
+  background: #fffdf9;
+  border-color: #ead8c2;
+  box-shadow: 0 10px 30px rgba(65, 28, 24, 0.09);
+}
+
+.pedido-nuevo .resumen__detalle {
+  padding: 24px 20px 0;
+  min-height: 0;
+}
+
+.pedido-nuevo .resumen__titulo {
+  font-size: 1.5rem;
+  line-height: 1.25;
+}
+
+.pedido-nuevo .resumen__detalle > .lineas {
+  margin: 0;
+}
+
+.pedido-nuevo .resumen__detalle .linea {
+  padding: 14px 0;
+}
+
+.pedido-nuevo .resumen__vacio {
+  padding: 0;
+  line-height: 1.6;
+}
+
+.pedido-nuevo .resumen__vacio strong {
+  margin-bottom: 6px;
+}
+
+.pedido-nuevo .resumen__detalle > .modalidad {
+  margin: 26px 0 0;
+  padding: 0;
+}
+
+.pedido-nuevo .resumen__detalle .modalidad__titulo {
+  margin: 0 0 12px;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  font-weight: 700;
+}
+
+.pedido-nuevo .resumen__detalle .segmented {
+  gap: 6px;
+  padding: 5px;
+  border-radius: 14px;
+  background: #faf5ed;
+}
+
+.pedido-nuevo .resumen__detalle .segmented__opcion {
+  min-height: 50px;
+  padding: 10px 8px;
+  border-radius: 10px;
+  line-height: 1.3;
+}
+
+.pedido-nuevo .resumen__envio {
+  margin-top: 24px;
+}
+
+.pedido-nuevo .resumen__envio .form-group {
+  margin: 0;
+  padding: 0;
+}
+
+.pedido-nuevo .resumen__envio label {
+  display: block;
+  margin: 0 0 10px;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  font-weight: 600;
+}
+
+.pedido-nuevo .resumen__envio label span {
+  color: #806c67;
+  font-weight: 400;
+}
+
+.pedido-nuevo .resumen__envio .form-input {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  min-height: 48px;
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid #dfcfb5;
+  border-radius: 10px;
+  background: #fff;
+  color: #35171d;
+  font: inherit;
+}
+
+.pedido-nuevo .resumen__estado-envio {
+  margin: 12px 0 0;
+  color: #806c67;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.pedido-nuevo .resumen__costos {
+  display: grid;
+  gap: 0;
+  margin-top: 24px;
+  padding: 8px 16px;
+  border: 1px solid #eee4d8;
+  border-radius: 12px;
+  background: #fbf7ef;
+}
+
+.pedido-nuevo .resumen__detalle .resumen__costos > p {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) max-content;
+  align-items: baseline;
+  column-gap: 24px;
+  margin: 0;
+  padding: 12px 0;
+  border-bottom: 1px solid #eee4d8;
+  color: #685552;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.pedido-nuevo .resumen__detalle .resumen__costos > p:last-child {
+  border-bottom: 0;
+}
+
+.pedido-nuevo .resumen__costos strong {
+  color: #35171d;
+  font-weight: 700;
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.pedido-nuevo .resumen__total {
+  margin: 24px 0 0;
+  padding: 20px 0 4px;
+  border-top: 1px solid #dfcfb5;
+  gap: 16px;
+  font-size: 1.05rem;
+}
+
+.pedido-nuevo .resumen__total-valor {
+  color: #7b1024;
+  font-size: clamp(1.65rem, 4vw, 2rem);
+  white-space: nowrap;
+}
+
+.pedido-nuevo .resumen__accion {
+  padding: 20px 20px calc(24px + env(safe-area-inset-bottom, 0px));
+}
+
+.pedido-nuevo .resumen__accion .btn {
+  min-height: 56px;
+  height: auto;
+  padding: 14px 16px;
+  border-radius: 12px;
+  gap: 10px;
+  flex-wrap: wrap;
+  line-height: 1.4;
+  font-weight: 700;
+}
+
+.pedido-nuevo .resumen__accion .btn:not(:disabled) {
+  box-shadow: 0 5px 14px rgba(123, 16, 36, 0.16);
+}
+
+.pedido-nuevo .resumen__accion .btn__total {
+  padding-left: 12px;
+  border-left: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+.pedido-nuevo .resumen__accion .btn__total::before {
+  content: none;
+}
+
+@media (min-width: 768px) {
+  .pedido-nuevo .resumen__panel {
+    border: 1px solid #ead8c2;
+    border-radius: 20px;
+  }
+
+  .pedido-nuevo .resumen__detalle {
+    padding: 28px 24px 0;
+  }
+
+  .pedido-nuevo .resumen__titulo {
+    margin: 0 0 24px;
+  }
+
+  .pedido-nuevo .resumen__accion {
+    padding: 20px 24px 24px;
+  }
+}
+
+/* ---------- Movimiento reducido ---------- */
+/* Este bloque solo modifica animaciones, nunca el espacio ni los colores. */
 @media (prefers-reduced-motion: reduce) {
   .pedido-nuevo *,
   .pedido-nuevo *::before,
   .pedido-nuevo *::after {
     transition: none !important;
   }
+
   .pedido-nuevo .spinner {
     animation-duration: 2.4s;
   }
+
   .pedido-nuevo .esqueleto,
   .pedido-nuevo .pizza-card--cargando .pizza-card__media {
     animation: none;

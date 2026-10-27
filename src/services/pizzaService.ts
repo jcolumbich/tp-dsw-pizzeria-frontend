@@ -1,3 +1,5 @@
+import type { FiltrosPizza, Pagina } from '../interfaces/listado.ts';
+import { obtenerPagina } from './listadoService';
 import type { Pizza, NuevaPizza, ActualizarPizza } from '../interfaces/pizza';
 import { fetchAutenticado, getAuthHeaders, errorRespuesta } from './httpCliente.ts';
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
@@ -5,15 +7,8 @@ interface ApiResponse<T> {
   message?: string;
   data: T;
 }
-export async function getPizzas(): Promise<Pizza[]> {
-  const response = await fetchAutenticado(`${API_URL}/pizzas`, {
-    headers: { ...getAuthHeaders() },
-  });
-  if (!response.ok) {
-    throw await errorRespuesta(response, `Error al obtener pizzas: ${response.status}`);
-  }
-  const body: ApiResponse<Pizza[]> = await response.json();
-  return body.data;
+export async function getPizzas(filtros: FiltrosPizza = {}, signal?: AbortSignal): Promise<Pagina<Pizza>> {
+  return obtenerPagina<Pizza>('pizzas', filtros, signal);
 }
 export async function crearPizza(
   nueva: NuevaPizza,

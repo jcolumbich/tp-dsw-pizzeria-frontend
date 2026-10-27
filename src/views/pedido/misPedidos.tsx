@@ -1,6 +1,7 @@
-import { Fragment, useEffect, useState } from 'react';
+import { useListado } from '../../hooks/useListado';
+import Paginacion from '../../components/Paginacion';
+import { Fragment, useState } from 'react';
 import { Link } from 'react-router-dom';
-import type { Pedido } from '../../interfaces/pedido';
 import { getPedidos } from '../../services/pedidoService';
 import { calcularTotalPedido, formatearPrecio } from '../../utils/formato';
 import AlertaError from '../../components/AlertaError';
@@ -10,32 +11,12 @@ import './crearPedidoForm.css';
 import './misPedidos.css';
 
 export default function MisPedidos() {
-  const [pedidos, setPedidos] = useState<Pedido[]>([]);
-  const [cargando, setCargando] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [filtro, setFiltro] = useState('todos');
-
-  const cargarPedidos = async () => {
-    try {
-      setCargando(true);
-      setError(null);
-      const data = await getPedidos();
-      const ordenados = [...data].sort((a, b) => new Date(b.dia).getTime() - new Date(a.dia).getTime());
-      setPedidos(ordenados);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudieron cargar tus pedidos.');
-    } finally {
-      setCargando(false);
-    }
-  };
-
-  useEffect(() => {
-    const temporizador = setTimeout(() => void cargarPedidos(), 0);
-    return () => clearTimeout(temporizador);
-  }, []);
-
-  const pedidosFiltrados =
-    filtro === 'todos' ? pedidos : pedidos.filter((pedido) => claseEstado(pedido.estado) === filtro);
+  const [pagina, setPagina] = useState(1);
+  const { data: pedidos, paginacion, cargando, error, recargar } = useListado(getPedidos, {
+    pagina, limite: 10, estado: filtro === 'todos' ? undefined : filtro,
+  });
+  const cambiarFiltro = (valor: string) => { setFiltro(valor); setPagina(1); };
 
   return (
     <div className="pedido-nuevo mis-pedidos">
@@ -49,6 +30,41 @@ export default function MisPedidos() {
             Nuevo pedido
           </Link>
         </div>
+
+            <fieldset className="filtros">
+              <legend className="sr-only">Filtrar por estado</legend>
+              <div className="chips">
+                <input
+                  className="chip__input"
+                  type="radio"
+                  name="estado"
+                  id="filtro-todos"
+                  checked={filtro === 'todos'}
+                  onChange={() => cambiarFiltro('todos')}
+                />
+                <label className="chip" htmlFor="filtro-todos">
+                  Todos
+                </label>
+                {ESTADOS_FILTRO.map((opcion) => (
+                  <Fragment key={opcion.valor}>
+                    <input
+                      className="chip__input"
+                      type="radio"
+                      name="estado"
+                      id={`filtro-${encodeURIComponent(opcion.valor)}`}
+                      checked={filtro === opcion.valor}
+                      onChange={() => cambiarFiltro(opcion.valor)}
+                    />
+                    <label className="chip" htmlFor={`filtro-${encodeURIComponent(opcion.valor)}`}>
+                      {opcion.etiqueta}
+                    </label>
+                  </Fragment>
+                ))}
+              </div>
+            </fieldset>
+            <p className="filtros__cuenta" role="status">
+              {cargando ? 'Cargando…' : `${paginacion?.total ?? 0} pedidos`}
+            </p>
 
         {cargando ? (
           <>
@@ -74,12 +90,12 @@ export default function MisPedidos() {
             titulo="No pudimos cargar tus pedidos"
             mensaje="Revisá tu conexión y volvé a intentar."
             accion={
-              <button type="button" className="btn btn--secundario btn--s" onClick={() => void cargarPedidos()}>
+              <button type="button" className="btn btn--secundario btn--s" onClick={() => recargar()}>
                 Reintentar
               </button>
             }
           />
-        ) : pedidos.length === 0 ? (
+        ) : pedidos.length === 0 && filtro === 'todos' && pagina === 1 ? (
           <div className="vacio">
             <p className="vacio__titulo">Todavía no hiciste ningún pedido</p>
             <p>Cuando hagas el primero, vas a poder seguirlo desde acá.</p>
@@ -91,47 +107,13 @@ export default function MisPedidos() {
           </div>
         ) : (
           <>
-            <fieldset className="filtros">
-              <legend className="sr-only">Filtrar por estado</legend>
-              <div className="chips">
-                <input
-                  className="chip__input"
-                  type="radio"
-                  name="estado"
-                  id="filtro-todos"
-                  checked={filtro === 'todos'}
-                  onChange={() => setFiltro('todos')}
-                />
-                <label className="chip" htmlFor="filtro-todos">
-                  Todos
-                </label>
-                {ESTADOS_FILTRO.map((opcion) => (
-                  <Fragment key={opcion.clase}>
-                    <input
-                      className="chip__input"
-                      type="radio"
-                      name="estado"
-                      id={`filtro-${opcion.clase}`}
-                      checked={filtro === opcion.clase}
-                      onChange={() => setFiltro(opcion.clase)}
-                    />
-                    <label className="chip" htmlFor={`filtro-${opcion.clase}`}>
-                      {opcion.etiqueta}
-                    </label>
-                  </Fragment>
-                ))}
-              </div>
-            </fieldset>
-            <p className="filtros__cuenta" role="status">
-              {pedidosFiltrados.length} {pedidosFiltrados.length === 1 ? 'pedido' : 'pedidos'}
-            </p>
 
-            {pedidosFiltrados.length === 0 ? (
+            {pedidos.length === 0 ? (
               <div className="vacio">
                 <p className="vacio__titulo">No tenés pedidos en ese estado</p>
                 <p>Probá con otro estado o mirá todos tus pedidos.</p>
                 <p className="vacio__accion">
-                  <button type="button" className="btn btn--secundario" onClick={() => setFiltro('todos')}>
+                  <button type="button" className="btn btn--secundario" onClick={() => cambiarFiltro('todos')}>
                     Ver todos
                   </button>
                 </p>
@@ -148,7 +130,7 @@ export default function MisPedidos() {
                   <span></span>
                 </div>
                 <ul className="pedidos">
-                  {pedidosFiltrados.map((pedido) => {
+                  {pedidos.map((pedido) => {
                     const unidades = pedido.detalles.reduce((acc, detalle) => acc + detalle.cantidad, 0);
                     return (
                       <li key={pedido.id}>
@@ -183,6 +165,7 @@ export default function MisPedidos() {
             )}
           </>
         )}
+        <Paginacion datos={paginacion} cambiarPagina={setPagina} deshabilitada={cargando} />
       </main>
     </div>
   );

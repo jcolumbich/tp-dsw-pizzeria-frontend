@@ -1,3 +1,5 @@
+import type { FiltrosPedido, Pagina } from '../interfaces/listado.ts';
+import { obtenerPagina } from './listadoService';
 import type { NuevoPedido, Pedido } from '../interfaces/pedido';
 import { fetchAutenticado, getAuthHeaders, errorRespuesta } from './httpCliente.ts';
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
@@ -5,14 +7,8 @@ interface ApiResponse<T> {
   message?: string;
   data: T;
 }
-export async function getPedidos(estado?: string): Promise<Pedido[]> {
-  const query = estado ? `?estado=${encodeURIComponent(estado)}` : '';
-  const response = await fetchAutenticado(`${API_URL}/pedidos${query}`, {
-    headers: { ...getAuthHeaders() },
-  });
-  if (!response.ok) throw await errorRespuesta(response, `Error al obtener pedidos: ${response.status}`);
-  const body: ApiResponse<Pedido[]> = await response.json();
-  return body.data;
+export async function getPedidos(filtros: FiltrosPedido = {}, signal?: AbortSignal): Promise<Pagina<Pedido>> {
+  return obtenerPagina<Pedido>('pedidos', filtros, signal);
 }
 export async function getPedidoById(id: number): Promise<Pedido> {
   const response = await fetchAutenticado(`${API_URL}/pedidos/${id}`, {
