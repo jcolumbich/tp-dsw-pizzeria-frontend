@@ -27,7 +27,7 @@ for (const retiro of [false, true]) {
         } else if (url.pathname.startsWith('/api/pagos/')) {
           data = { estado: 'efectivo', estadoPedido: 'Pendiente', medioPago: 'efectivo', retiro, puedePagar: false, importe: null };
         } else data = pedido;
-        await route.fulfill({ json: { data } });
+        await route.fulfill({ json: { data, ...(url.pathname === '/api/pizzas' ? { paginacion: { pagina: 1, limite: 12, total: 1, totalPaginas: 1 } } : {}) } });
       });
       await page.route('https://www.mercadopago.com.ar/checkout/test-frontend', route => route.fulfill({ contentType: 'text/html', body: '<h1>Checkout simulado</h1>' }));
       await page.goto('/pedidos/nuevo');
