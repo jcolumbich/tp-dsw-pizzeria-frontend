@@ -15,6 +15,7 @@ import RegistroForm from './views/auth/RegistroForm';
 import RutaProtegida from './components/RutaProtegida';
 import { useAuth } from './context/useAuth.ts';
 import Inicio from './views/inicio/Inicio';
+import PaginaNoEncontrada from './components/PaginaNoEncontrada';
 import logo from './assets/logo.png';
 import './App.css';
 import './Inicio.css';
@@ -230,6 +231,7 @@ function App() {
                 </RutaProtegida>
               }
             />
+            <Route path="*" element={<PaginaNoEncontrada />} />
           </Routes>
         </section>
       </main>

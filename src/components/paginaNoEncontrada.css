@@ -1,0 +1,23 @@
+.pagina-404 {
+  display: grid;
+  place-items: center;
+  min-height: min(75vh, 680px);
+  padding: 48px 20px;
+  background: #fbf7ef;
+  color: #351920;
+  text-align: center;
+}
+.pagina-404__contenido { max-width: 540px; }
+.pagina-404__numero {
+  display: block;
+  color: #7b1024;
+  font-family: 'Young Serif', Georgia, serif;
+  font-size: clamp(90px, 20vw, 160px);
+  line-height: 1;
+}
+.pagina-404__etiqueta { display: block; margin: 20px 0 12px; color: #9a6b38; font-size: 12px; font-weight: 700; letter-spacing: .14em; }
+.pagina-404 h1 { margin: 0; font-family: 'Young Serif', Georgia, serif; font-size: clamp(26px, 5vw, 38px); line-height: 1.3; }
+.pagina-404 p { margin: 18px auto 28px; color: #775d62; line-height: 1.6; }
+.pagina-404__volver { display: inline-flex; align-items: center; justify-content: center; min-height: 46px; padding: 10px 24px; border-radius: 10px; background: #7b1024; color: white; font-weight: 600; text-decoration: none; }
+.pagina-404__volver:hover { background: #5e0b1b; }
+.pagina-404__volver:focus-visible { outline: 3px solid #a44e61; outline-offset: 4px; }
