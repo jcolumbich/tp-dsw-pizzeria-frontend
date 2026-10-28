@@ -1,3 +1,4 @@
+import DetalleRegistro from '../../components/DetalleRegistro';
 import { useListado } from '../../hooks/useListado';
 import Paginacion from '../../components/Paginacion';
 import { useState } from 'react';
@@ -12,6 +13,7 @@ import CrearRepartidorForm from './crearRepartidorForm';
 import '../gestionPersonas.css';
 
 export default function RepartidorList() {
+  const [seleccionado, setSeleccionado] = useState<Repartidor | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
 
@@ -359,6 +361,7 @@ export default function RepartidorList() {
                             </>
                           ) : (
                             <>
+                              <button type="button" disabled={guardando} onClick={() => setSeleccionado(persona)}>Ver detalle</button>
                               <button
                                 type="button"
                                 disabled={guardando}
@@ -394,6 +397,22 @@ export default function RepartidorList() {
           deshabilitada={guardando || cargando} etiqueta="Paginación de repartidores" />
         {errorCarga && <button type="button" onClick={recargar}>Reintentar</button>}
       </div>
+      {seleccionado && (
+        <DetalleRegistro
+          titulo="Detalle del repartidor"
+          subtitulo={seleccionado.nombre + ' ' + seleccionado.apellido}
+          campos={[
+            { etiqueta: 'ID', valor: seleccionado.id },
+            { etiqueta: 'Nombre', valor: seleccionado.nombre },
+            { etiqueta: 'Apellido', valor: seleccionado.apellido },
+            { etiqueta: 'Email', valor: seleccionado.email },
+            { etiqueta: 'Matrícula', valor: seleccionado.matricula },
+            { etiqueta: 'Estado', valor: seleccionado.estado ? 'Activo' : 'Inactivo' },
+            { etiqueta: 'Propinas acumuladas', valor: new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(seleccionado.monto_propina_total) },
+          ]}
+          onCerrar={() => setSeleccionado(null)}
+        />
+      )}
     </section>
   );
 }
