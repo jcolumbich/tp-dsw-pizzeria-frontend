@@ -1,9 +1,11 @@
+import DetalleRegistro from '../../components/DetalleRegistro';
 import { useEffect, useState } from 'react';
 import type { Ingrediente } from '../../interfaces/ingrediente';
 import { getIngredientes, eliminarIngrediente, actualizarIngrediente } from '../../services/ingredienteService';
 import { crearIngredienteSchema } from '../../schemas/ingrediente.schema';
 import CrearIngredienteForm from './crearIngredienteForm';
 export default function IngredientesList() {
+  const [seleccionado, setSeleccionado] = useState<Ingrediente | null>(null);
   const [ingredientes, setIngredientes] = useState<Ingrediente[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [cargando, setCargando] = useState(true);
@@ -161,7 +163,8 @@ export default function IngredientesList() {
                     </>
                   ) : (
                     <>
-                      <button type="button" disabled={guardando} onClick={() => handleIniciarEdicion(ing)}>
+                      <button type="button" disabled={guardando} onClick={() => setSeleccionado(ing)}>Ver detalle</button>
+                              <button type="button" disabled={guardando} onClick={() => handleIniciarEdicion(ing)}>
                         Editar
                       </button>
                       <button
@@ -179,6 +182,18 @@ export default function IngredientesList() {
             ))}
           </tbody>
         </table>
+      )}
+      {seleccionado && (
+        <DetalleRegistro
+          titulo="Detalle del ingrediente"
+          subtitulo={seleccionado.nombre}
+          campos={[
+            { etiqueta: 'ID', valor: seleccionado.id },
+            { etiqueta: 'Nombre', valor: seleccionado.nombre },
+            { etiqueta: 'Stock', valor: new Intl.NumberFormat('es-AR', { maximumFractionDigits: 6 }).format(seleccionado.stock) },
+          ]}
+          onCerrar={() => setSeleccionado(null)}
+        />
       )}
     </div>
   );

@@ -1,3 +1,4 @@
+import DetalleRegistro from '../../components/DetalleRegistro';
 import { useListado } from '../../hooks/useListado.ts';
 import Paginacion from '../../components/Paginacion';
 import { useState } from 'react';
@@ -12,6 +13,7 @@ import CrearClienteForm from './crearClienteForm';
 import '../gestionPersonas.css';
 
 export default function ClienteList() {
+  const [seleccionado, setSeleccionado] = useState<Cliente | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
 
@@ -331,6 +333,7 @@ export default function ClienteList() {
                             </>
                           ) : (
                             <>
+                              <button type="button" disabled={guardando} onClick={() => setSeleccionado(persona)}>Ver detalle</button>
                               <button
                                 type="button"
                                 disabled={guardando}
@@ -364,6 +367,22 @@ export default function ClienteList() {
           deshabilitada={guardando || cargando} etiqueta="Paginación de clientes" />
         {errorCarga && <button type="button" onClick={recargar}>Reintentar</button>}
       </div>
+      {seleccionado && (
+        <DetalleRegistro
+          titulo="Detalle del cliente"
+          subtitulo={seleccionado.nombre + ' ' + seleccionado.apellido}
+          campos={[
+            { etiqueta: 'ID', valor: seleccionado.id },
+            { etiqueta: 'Nombre', valor: seleccionado.nombre },
+            { etiqueta: 'Apellido', valor: seleccionado.apellido },
+            { etiqueta: 'Email', valor: seleccionado.email },
+            { etiqueta: 'Domicilio', valor: seleccionado.domicilio },
+            { etiqueta: 'Estado', valor: seleccionado.estado ? 'Activo' : 'Inactivo' },
+            { etiqueta: 'Rol', valor: seleccionado.nivel_permisos === 1 ? 'Administrador' : 'Cliente' },
+          ]}
+          onCerrar={() => setSeleccionado(null)}
+        />
+      )}
     </section>
   );
 }
