@@ -11,6 +11,7 @@ import {
 } from '../../services/pizzaService';
 import { crearPizzaSchema } from '../../schemas/pizza.schema';
 import CrearPizzaForm from './crearPizzaForm';
+import './pizzaGestion.css';
 export default function PizzaList() {
   const [error, setError] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
@@ -143,7 +144,7 @@ export default function PizzaList() {
   };
   const handlePizzaCreada = () => { setPagina(1); recargar(); };
   return (
-    <div className="ingredientes-container">
+    <div className="ingredientes-container pizza-gestion">
       <h2> Gestión de Pizzas</h2>
       <CrearPizzaForm onPizzaCreada={handlePizzaCreada} />
       {(error || errorCarga) && (
@@ -167,12 +168,12 @@ export default function PizzaList() {
             <option value="">Todas</option><option value="true">Disponibles</option><option value="false">No disponibles</option>
           </select>
         </label>
-        <button type="submit" disabled={guardando}>Buscar</button>
-        <button type="button" disabled={guardando} onClick={() => {
+        <button className="pizza-boton pizza-boton--principal" type="submit" disabled={guardando}>Buscar</button>
+        <button className="pizza-boton pizza-boton--secundario" type="button" disabled={guardando} onClick={() => {
           setFiltro(''); setBusqueda(''); setVegetariana(''); setDisponible(''); setPagina(1); handleCancelarEdicion();
         }}>Limpiar</button>
       </form>
-      {errorCarga && <button type="button" onClick={recargar}>Reintentar</button>}
+      {errorCarga && <button className="pizza-boton pizza-boton--secundario" type="button" onClick={recargar}>Reintentar</button>}
       {cargando ? <p role="status">Cargando pizzas…</p> :
       pizzas.length === 0 && !error ? (
         <p>

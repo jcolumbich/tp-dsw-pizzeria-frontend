@@ -1,0 +1,239 @@
+/* Estilos exclusivos de la gestión de pizzas. */
+.app-container .ingredientes-container.pizza-gestion .pizza-form .form {
+  gap: 24px;
+}
+
+.app-container .ingredientes-container.pizza-gestion .pizza-campo-titulo {
+  color: #543039;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.app-container .ingredientes-container.pizza-gestion .pizza-upload {
+  overflow: hidden;
+  padding: 8px;
+  border: 2px dashed #dcc3b2;
+  border-radius: 16px;
+  background: #fcf8f3;
+  text-align: center;
+  transition: border-color 160ms ease, background-color 160ms ease;
+}
+
+.app-container .ingredientes-container.pizza-gestion .pizza-upload:hover,
+.app-container .ingredientes-container.pizza-gestion .pizza-upload:focus-within,
+.app-container .ingredientes-container.pizza-gestion .pizza-upload--activo {
+  border-color: #7b1024;
+  background: #faf0f1;
+}
+
+.app-container .ingredientes-container.pizza-gestion .pizza-upload-elegir {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 240px;
+  padding: 28px 16px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: #351920;
+  font: inherit;
+  cursor: pointer;
+}
+
+.app-container .ingredientes-container.pizza-gestion .pizza-upload-icono {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  margin-bottom: 4px;
+  border: 1px solid #ead7da;
+  border-radius: 18px;
+  background: #f4e7e9;
+  color: #7b1024;
+}
+
+.app-container .ingredientes-container.pizza-gestion .pizza-upload-elegir strong {
+  font-size: 17px;
+  line-height: 1.4;
+}
+
+.app-container .ingredientes-container.pizza-gestion .pizza-upload-texto {
+  max-width: 100%;
+  color: #775d62;
+  font-size: 14px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.app-container .ingredientes-container.pizza-gestion .pizza-upload-boton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  margin-top: 6px;
+  padding: 10px 22px;
+  border-radius: 10px;
+  background: #7b1024;
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.app-container .ingredientes-container.pizza-gestion .pizza-upload-preview {
+  width: min(100%, 320px);
+  height: 180px;
+  border: 1px solid #ead8c4;
+  border-radius: 12px;
+  background: white;
+  object-fit: contain;
+}
+
+.app-container .ingredientes-container.pizza-gestion .pizza-upload-quitar {
+  min-height: 44px;
+  margin: 0 0 8px;
+  padding: 8px 16px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #7b1024;
+  font: inherit;
+  font-size: 14px;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  cursor: pointer;
+}
+
+.app-container .ingredientes-container.pizza-gestion .pizza-imagen-campo {
+  gap: 12px;
+}
+
+.app-container .ingredientes-container.pizza-gestion .pizza-imagen-campo small {
+  color: #775d62;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.app-container .ingredientes-container.pizza-gestion .pizza-form .form-actions {
+  padding-top: 20px;
+  border-top: 1px solid #efe3d7;
+}
+
+.app-container .ingredientes-container.pizza-gestion .busqueda-listado {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: end;
+  gap: 18px;
+  margin: 28px 0 22px;
+  padding: 24px;
+  border: 1px solid #ead8c4;
+  border-radius: 14px;
+  background: white;
+  box-shadow: 0 3px 12px #35192005;
+}
+
+.app-container .ingredientes-container.pizza-gestion .busqueda-listado label {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  min-width: 0;
+  color: #543039;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.app-container .ingredientes-container.pizza-gestion .busqueda-listado input,
+.app-container .ingredientes-container.pizza-gestion .busqueda-listado select {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  height: 46px;
+  padding: 10px 12px;
+  border: 1px solid #ddcbb7;
+  border-radius: 10px;
+  background: #fffdf9;
+  color: #351920;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 400;
+}
+
+.app-container .ingredientes-container.pizza-gestion .pizza-boton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 100px;
+  min-height: 46px;
+  padding: 11px 22px;
+  border: 1px solid #7b1024;
+  border-radius: 10px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+  cursor: pointer;
+  transition: background-color 160ms ease, box-shadow 160ms ease;
+}
+
+.app-container .ingredientes-container.pizza-gestion .pizza-boton--principal {
+  background: #7b1024;
+  color: white;
+}
+
+.app-container .ingredientes-container.pizza-gestion .pizza-boton--principal:hover:not(:disabled) {
+  background: #5e0b1b;
+  box-shadow: 0 4px 12px #7b102420;
+}
+
+.app-container .ingredientes-container.pizza-gestion .pizza-boton--secundario {
+  border-color: #ddcbb7;
+  background: #fffdf9;
+  color: #7b1024;
+}
+
+.app-container .ingredientes-container.pizza-gestion .pizza-boton--secundario:hover:not(:disabled) {
+  background: #f5ece0;
+}
+
+.app-container .ingredientes-container.pizza-gestion :is(.pizza-boton, .pizza-upload-elegir, .pizza-upload-quitar, .busqueda-listado input, .busqueda-listado select):focus-visible {
+  outline: 3px solid #7b1024;
+  outline-offset: 3px;
+}
+
+.app-container .ingredientes-container.pizza-gestion .pizza-upload--deshabilitado {
+  opacity: .65;
+}
+
+/* El selector de imagen de las filas de edición conserva su control nativo. */
+.app-container .ingredientes-container.pizza-gestion input[type="file"]::file-selector-button {
+  margin-right: 12px;
+  padding: 10px 14px;
+  border: 0;
+  border-radius: 8px;
+  background: #f4e7e9;
+  color: #7b1024;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+@media (min-width: 640px) {
+  .app-container .ingredientes-container.pizza-gestion .busqueda-listado {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .app-container .ingredientes-container.pizza-gestion .busqueda-listado label:first-child {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (min-width: 1100px) {
+  .app-container .ingredientes-container.pizza-gestion .busqueda-listado {
+    grid-template-columns: minmax(200px, 2fr) repeat(2, minmax(150px, 1fr)) auto auto;
+  }
+
+  .app-container .ingredientes-container.pizza-gestion .busqueda-listado label:first-child {
+    grid-column: auto;
+  }
+}
