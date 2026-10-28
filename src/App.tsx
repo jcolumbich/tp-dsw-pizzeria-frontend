@@ -14,9 +14,9 @@ import LoginForm from './views/auth/LoginForm';
 import RegistroForm from './views/auth/RegistroForm';
 import RutaProtegida from './components/RutaProtegida';
 import { useAuth } from './context/useAuth.ts';
-import Inicio from './views/inicio/Inicio';
+import Inicio from './views/inicio/Inicio.tsx';
 import PaginaNoEncontrada from './components/PaginaNoEncontrada';
-import logo from './assets/logo.png';
+import logo from './assets/logo.webp';
 import './App.css';
 import './Inicio.css';
 function App() {

@@ -1,15 +1,15 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { useAuth } from '../../context/useAuth';
+import { useAuth } from '../../context/useAuth.ts';
 import { useListado } from '../../hooks/useListado.ts';
-import Paginacion from '../../components/Paginacion';
+import Paginacion from '../../components/Paginacion.tsx';
 import {
   getPizzas,
   obtenerUrlImagenPizza,
-} from '../../services/pizzaService';
-import imagenInicio from '../../assets/inicio.png';
-import fotoAbajo from '../../assets/fotoAbajo.png';
+} from '../../services/pizzaService.ts';
+import imagenInicio from '../../assets/inicio.webp';
+import fotoAbajo from '../../assets/fotoAbajo.webp';
 
 export default function Inicio() {
   const portadaRef = useRef<HTMLDivElement>(null);
