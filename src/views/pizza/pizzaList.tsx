@@ -197,7 +197,82 @@ export default function PizzaList() {
           </thead>
           <tbody>
             {pizzas.map((p) => (
-              <tr key={p.id}>
+              editandoId === p.id ? (
+                <tr key={p.id} className="pizza-fila-edicion">
+                  <td colSpan={6}>
+                    <form className="pizza-editor" onSubmit={(event) => {
+                      event.preventDefault();
+                      void handleGuardarCambios(p.id);
+                    }}>
+                      <header className="pizza-editor-cabecera">
+                        <span className="pizza-form-etiqueta">EDITAR PIZZA</span>
+                        <h3>{p.nombre}</h3>
+                        <p>Actualizá la información que aparece en tu carta.</p>
+                      </header>
+                      <div className="pizza-editor-foto">
+                        {vistaPrevia || p.imagen ? (
+                          <img src={vistaPrevia || obtenerUrlImagenPizza(p)!} alt={`Imagen de ${p.nombre}`} />
+                        ) : <span className="pizza-editor-sin-foto">Sin imagen</span>}
+                        <input
+                          ref={imagenInputRef}
+                          id={`pizza-imagen-${p.id}`}
+                          type="file"
+                          hidden
+                          accept="image/jpeg,image/png,image/webp"
+                          onChange={(event) => handleSeleccionarImagen(event.target.files?.[0])}
+                          disabled={guardando}
+                          aria-label="Seleccionar nueva imagen"
+                        />
+                        <button type="button" className="pizza-boton pizza-boton--secundario"
+                          disabled={guardando} onClick={() => imagenInputRef.current?.click()}>
+                          Cambiar foto
+                        </button>
+                        {imagenEditada && <span className="pizza-editor-archivo">{imagenEditada.name}</span>}
+                        <small>JPG, PNG o WebP · Hasta 5 MB y 20 megapíxeles. La foto actual se conserva si no elegís otra.</small>
+                      </div>
+                      <div className="pizza-editor-datos">
+                        <label htmlFor={`pizza-nombre-${p.id}`}>Nombre
+                          <input id={`pizza-nombre-${p.id}`} className="form-input" value={nombreEditado}
+                            onChange={(event) => setNombreEditado(event.target.value)} maxLength={100}
+                            disabled={guardando} autoFocus />
+                        </label>
+                        <label htmlFor={`pizza-descripcion-${p.id}`}>Descripción <span className="pizza-editor-opcional">(opcional)</span>
+                          <textarea id={`pizza-descripcion-${p.id}`} className="form-input" rows={3}
+                            value={descripcionEditada} onChange={(event) => setDescripcionEditada(event.target.value)}
+                            maxLength={300} disabled={guardando}
+                            placeholder="Contá qué ingredientes tiene y qué la hace especial."
+                            aria-describedby={`pizza-contador-${p.id}`} />
+                          <small id={`pizza-contador-${p.id}`}>{descripcionEditada.length}/300 caracteres</small>
+                        </label>
+                        <label htmlFor={`pizza-precio-${p.id}`}>Precio ($)
+                          <input id={`pizza-precio-${p.id}`} type="number" className="form-input"
+                            value={precioEditado} onChange={(event) => setPrecioEditado(event.target.value)}
+                            min="0" step="0.01" disabled={guardando} />
+                        </label>
+                        <div className="pizza-editor-opciones">
+                          <label className="pizza-editor-check">
+                            <input type="checkbox" checked={vegetarianaEditada}
+                              onChange={(event) => setVegetarianaEditada(event.target.checked)} disabled={guardando} />
+                            <span>Vegetariana<small>Una opción sin carne</small></span>
+                          </label>
+                          <label className="pizza-editor-check">
+                            <input type="checkbox" checked={disponibleEditada}
+                              onChange={(event) => setDisponibleEditada(event.target.checked)} disabled={guardando} />
+                            <span>Disponible<small>Se puede pedir en la carta</small></span>
+                          </label>
+                        </div>
+                      </div>
+                      <footer className="pizza-editor-acciones">
+                        <button type="button" className="pizza-boton pizza-boton--secundario" disabled={guardando}
+                          onClick={handleCancelarEdicion}>Cancelar</button>
+                        <button type="submit" className="pizza-boton pizza-boton--principal" disabled={guardando}>
+                          {guardando ? 'Guardando...' : 'Guardar cambios'}
+                        </button>
+                      </footer>
+                    </form>
+                  </td>
+                </tr>
+              ) : <tr key={p.id}>
                 <td>
                   <div className="form-group">
                     {(editandoId === p.id && vistaPrevia) || p.imagen ? (
