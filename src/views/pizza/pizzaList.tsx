@@ -183,6 +183,7 @@ export default function PizzaList() {
           No se encontraron pizzas para los filtros seleccionados.
         </p>
       ) : (
+        <div className="pizza-tabla-scroll" role="region" aria-label="Listado de pizzas" tabIndex={0}>
         <table className="ingredientes-table">
           <thead>
             <tr>
@@ -354,6 +355,7 @@ export default function PizzaList() {
             ))}
           </tbody>
         </table>
+        </div>
       )}
       <Paginacion datos={paginacion} deshabilitada={cargando || guardando}
         cambiarPagina={valor => { setPagina(valor); handleCancelarEdicion(); }} />

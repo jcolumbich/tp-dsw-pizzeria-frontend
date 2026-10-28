@@ -92,10 +92,15 @@ export default function CrearPizzaForm({ onPizzaCreada }: Props) {
 
   return (
     <div className="crear-ingrediente-form pizza-form">
-      <h3> + Agregar Nueva Pizza</h3>
+      <header className="pizza-form-cabecera">
+        <span className="pizza-form-etiqueta">TU CARTA</span>
+        <h3>Agregar una pizza</h3>
+        <p>Completá los datos y elegí una foto para presentarla en la carta.</p>
+      </header>
       {error && <p className="form-error" role="alert"> {error}</p>}
 
       <form onSubmit={handleSubmit} className="form" noValidate>
+        <div className="pizza-form-datos">
         <div className="form-group">
           <label htmlFor="pizza-nombre">Nombre:</label>
           <input
@@ -141,7 +146,7 @@ export default function CrearPizzaForm({ onPizzaCreada }: Props) {
           />
         </div>
 
-        <div className="form-group-small">
+        <div className="form-group-small pizza-opcion">
           <label>
             <input
               type="checkbox"
@@ -149,11 +154,11 @@ export default function CrearPizzaForm({ onPizzaCreada }: Props) {
               onChange={(e) => setVegetariana(e.target.checked)}
               disabled={submitting}
             />{' '}
-            Vegetariana
+            <span><strong>Vegetariana</strong><small>Una opción sin carne</small></span>
           </label>
         </div>
 
-        <div className="form-group-small">
+        <div className="form-group-small pizza-opcion">
           <label>
             <input
               type="checkbox"
@@ -161,8 +166,10 @@ export default function CrearPizzaForm({ onPizzaCreada }: Props) {
               onChange={(e) => setDisponible(e.target.checked)}
               disabled={submitting}
             />{' '}
-            Disponible
+            <span><strong>Disponible</strong><small>Visible para recibir pedidos</small></span>
           </label>
+        </div>
+
         </div>
 
         <div className="form-group pizza-imagen-campo">
@@ -247,6 +254,7 @@ export default function CrearPizzaForm({ onPizzaCreada }: Props) {
         </div>
 
         <div className="form-actions">
+          <span className="pizza-form-nota">Podés editar los datos de tu pizza cuando quieras.</span>
           <button type="submit" disabled={submitting} className="btn-submit pizza-boton pizza-boton--principal">
             {submitting ? 'Guardando...' : 'Guardar Pizza'}
           </button>
