@@ -212,6 +212,7 @@ export default function Inicio() {
                   </span>
 
                   <h3>{pizza.nombre}</h3>
+                  {pizza.descripcion && <p style={{ color: "#775d62", lineHeight: 1.6, overflowWrap: "anywhere", whiteSpace: "pre-line" }}>{pizza.descripcion}</p>}
 
                   {pizza.vegetariana && (
                     <span className="inicio-etiqueta">

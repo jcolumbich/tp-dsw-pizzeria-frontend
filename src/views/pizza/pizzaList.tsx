@@ -27,6 +27,7 @@ export default function PizzaList() {
   });
   const [editandoId, setEditandoId] = useState<number | null>(null);
   const [nombreEditado, setNombreEditado] = useState('');
+  const [descripcionEditada, setDescripcionEditada] = useState('');
   const [precioEditado, setPrecioEditado] = useState('0');
   const [vegetarianaEditada, setVegetarianaEditada] = useState(false);
   const [disponibleEditada, setDisponibleEditada] = useState(true);
@@ -66,6 +67,7 @@ export default function PizzaList() {
   const handleIniciarEdicion = (p: Pizza) => {
     setEditandoId(p.id);
     setNombreEditado(p.nombre);
+    setDescripcionEditada(p.descripcion ?? '');
     setPrecioEditado(String(p.precio));
     setVegetarianaEditada(p.vegetariana);
     setDisponibleEditada(p.disponible);
@@ -112,6 +114,7 @@ export default function PizzaList() {
     setError(null);
     const resultado = crearPizzaSchema.safeParse({
       nombre: nombreEditado,
+      descripcion: descripcionEditada,
       precio: precioEditado.trim() === '' ? undefined : Number(precioEditado),
       vegetariana: vegetarianaEditada,
       disponible: disponibleEditada,
@@ -249,6 +252,21 @@ export default function PizzaList() {
                       autoFocus
                     />
                   ) : p.nombre}
+                  {editandoId === p.id ? (
+                    <label className="pizza-descripcion-editar">
+                      Descripción (opcional)
+                      <textarea
+                        className="form-input"
+                        value={descripcionEditada}
+                        onChange={(event) => setDescripcionEditada(event.target.value)}
+                        maxLength={300}
+                        rows={3}
+                        disabled={guardando}
+                      />
+                    </label>
+                  ) : p.descripcion ? (
+                    <p className="pizza-descripcion-texto">{p.descripcion}</p>
+                  ) : null}
                 </td>
                 <td>
                   {editandoId === p.id ? (

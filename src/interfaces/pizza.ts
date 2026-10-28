@@ -1,6 +1,7 @@
 export interface Pizza {
   id: number;
   nombre: string;
+  descripcion?: string | null;
   precio: number;
   vegetariana: boolean;
   disponible: boolean;
