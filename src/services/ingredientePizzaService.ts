@@ -1,6 +1,6 @@
-import type { IngredientePizza, NuevoIngredientePizza } from '../interfaces/ingredientePizza';
+﻿import type { IngredientePizza, NuevoIngredientePizza } from '../interfaces/ingredientePizza';
 import { fetchAutenticado, getAuthHeaders, errorRespuesta } from './httpCliente.ts';
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+import { API_URL } from '../config';
 interface ApiResponse<T> {
   message?: string;
   data: T;
@@ -9,7 +9,7 @@ export async function getIngredientesDePizza(pizzaId: number): Promise<Ingredien
   const response = await fetchAutenticado(`${API_URL}/ingrediente-pizza/pizza/${pizzaId}`, {
     headers: { ...getAuthHeaders() },
   });
-  if (!response.ok) throw await errorRespuesta(response, `Error al obtener la composición de la pizza: ${response.status}`);
+  if (!response.ok) throw await errorRespuesta(response, `Error al obtener la composiciÃ³n de la pizza: ${response.status}`);
   const body: ApiResponse<IngredientePizza[]> = await response.json();
   return body.data;
 }

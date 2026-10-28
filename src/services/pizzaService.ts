@@ -1,8 +1,8 @@
-import type { FiltrosPizza, Pagina } from '../interfaces/listado.ts';
+﻿import type { FiltrosPizza, Pagina } from '../interfaces/listado.ts';
 import { obtenerPagina } from './listadoService';
 import type { Pizza, NuevaPizza, ActualizarPizza } from '../interfaces/pizza';
 import { fetchAutenticado, getAuthHeaders, errorRespuesta } from './httpCliente.ts';
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+import { API_URL } from '../config';
 interface ApiResponse<T> {
   message?: string;
   data: T;

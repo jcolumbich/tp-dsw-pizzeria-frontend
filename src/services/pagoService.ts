@@ -1,12 +1,10 @@
-import {
+﻿import {
   errorRespuesta,
   fetchAutenticado,
   getAuthHeaders,
 } from './httpCliente';
 
-const API_URL = (
-  import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
-).replace(/\/$/, '');
+import { API_URL } from '../config';
 
 export interface EstadoPago {
   estado: string;

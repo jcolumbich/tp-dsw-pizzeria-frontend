@@ -1,6 +1,6 @@
-import type {Ingrediente,NuevoIngrediente,ActualizarIngrediente,} from '../interfaces/ingrediente';
+﻿import type {Ingrediente,NuevoIngrediente,ActualizarIngrediente,} from '../interfaces/ingrediente';
 import { fetchAutenticado, getAuthHeaders, errorRespuesta } from './httpCliente.ts';
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+import { API_URL } from '../config';
 interface ApiResponse<T> {
   message?: string;
   data: T;

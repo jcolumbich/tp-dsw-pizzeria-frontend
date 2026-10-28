@@ -1,6 +1,6 @@
-import type { RespuestaLogin } from '../interfaces/auth';
+﻿import type { RespuestaLogin } from '../interfaces/auth';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+import { API_URL } from '../config';
 
 interface ApiResponse<T> {
   message?: string;
@@ -32,7 +32,7 @@ export async function login(email: string, contrasenia: string): Promise<Respues
 
   if (!response.ok) {
     const body = await response.json().catch(() => null);
-    throw new Error(body?.message || 'No se pudo iniciar sesión');
+    throw new Error(body?.message || 'No se pudo iniciar sesiÃ³n');
   }
 
   const body: ApiResponse<RespuestaLogin> = await response.json();

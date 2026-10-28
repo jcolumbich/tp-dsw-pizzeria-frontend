@@ -1,9 +1,9 @@
-import type { FiltrosPersona, Pagina } from '../interfaces/listado';
+﻿import type { FiltrosPersona, Pagina } from '../interfaces/listado';
 import { obtenerPagina } from './listadoService';
 import type {Repartidor, NuevoRepartidor,ActualizarRepartidor,} from '../interfaces/repartidor';
 import { fetchAutenticado, getAuthHeaders } from './httpCliente.ts';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+import { API_URL } from '../config';
 
 interface ApiResponse<T> {
   message?: string;

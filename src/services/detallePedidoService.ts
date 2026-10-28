@@ -1,7 +1,7 @@
-import type { Pedido } from '../interfaces/pedido';
+﻿import type { Pedido } from '../interfaces/pedido';
 import { fetchAutenticado, getAuthHeaders } from './httpCliente.ts';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+import { API_URL } from '../config';
 
 interface DetalleResponse<T> {
   message?: string;
@@ -19,7 +19,7 @@ export async function agregarItemAPedido(
     headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
     body: JSON.stringify({ pedidoId, pizzaId, cantidad }),
   });
-  if (!response.ok) throw new Error(`Error al agregar el ítem: ${response.status}`);
+  if (!response.ok) throw new Error(`Error al agregar el Ã­tem: ${response.status}`);
   const body: DetalleResponse<unknown> = await response.json();
   return body.pedido;
 }
@@ -34,7 +34,7 @@ export async function actualizarCantidadItem(
     headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
     body: JSON.stringify({ cantidad }),
   });
-  if (!response.ok) throw new Error(`Error al actualizar el ítem: ${response.status}`);
+  if (!response.ok) throw new Error(`Error al actualizar el Ã­tem: ${response.status}`);
   const body: DetalleResponse<unknown> = await response.json();
   return body.pedido;
 }
@@ -47,7 +47,7 @@ export async function eliminarItemDePedido(
     method: 'DELETE',
     headers: { ...getAuthHeaders() },
   });
-  if (!response.ok) throw new Error(`Error al eliminar el ítem: ${response.status}`);
+  if (!response.ok) throw new Error(`Error al eliminar el Ã­tem: ${response.status}`);
   const body: DetalleResponse<unknown> = await response.json();
   return body.pedido;
 }

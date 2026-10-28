@@ -1,8 +1,8 @@
-import type { FiltrosPedido, Pagina } from '../interfaces/listado.ts';
+﻿import type { FiltrosPedido, Pagina } from '../interfaces/listado.ts';
 import { obtenerPagina } from './listadoService';
 import type { NuevoPedido, Pedido } from '../interfaces/pedido';
 import { fetchAutenticado, getAuthHeaders, errorRespuesta } from './httpCliente.ts';
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+import { API_URL } from '../config';
 interface ApiResponse<T> {
   message?: string;
   data: T;
@@ -54,7 +54,7 @@ export async function asignarEnvio(id: number, repartidorId: number, costo: numb
   });
   if (!response.ok) {
     const body = await response.json().catch(() => null);
-    throw new Error(body?.message || `Error al asignar el envío al pedido ${id}`);
+    throw new Error(body?.message || `Error al asignar el envÃ­o al pedido ${id}`);
   }
   const body: ApiResponse<Pedido> = await response.json();
   return body.data;
@@ -62,7 +62,7 @@ export async function asignarEnvio(id: number, repartidorId: number, costo: numb
 
 export async function obtenerTarifaEnvio(): Promise<number> {
   const response = await fetchAutenticado(`${API_URL}/pedidos/tarifa-envio`, { headers: getAuthHeaders() });
-  if (!response.ok) throw await errorRespuesta(response, 'No se pudo cargar el costo del envío');
+  if (!response.ok) throw await errorRespuesta(response, 'No se pudo cargar el costo del envÃ­o');
   const body: ApiResponse<{ costo: number }> = await response.json();
   return body.data.costo;
 }
